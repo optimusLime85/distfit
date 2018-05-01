@@ -3,6 +3,7 @@
     such as SciPy but that are not easily added to the python that comes with ABAQUS
 """
 #This is Mark's change
+# ...and this is his second
 import math
 import csv
 
