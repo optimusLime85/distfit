@@ -11,19 +11,18 @@ from bokeh.plotting import figure
 
 # TODO: handle cases where least squares fails
 # TODO: put populating mle and least squares data in its own function
-# TODO: figure out how to handle distributions with >1 shape parameter
-# TODO: figure out how to make least squares work with arbitrary number of shape variables
-
-def myFun(x, data, perc_emp):
-    return perc_emp - stats.norm.cdf(data, loc=x[0], scale=x[1])
+def myFun(x, data, dist_str, perc_emp):
+    return perc_emp - getattr(stats, dist_str).cdf(data, loc=x[0], scale=x[1])
+    # return perc_emp - stats.norm.cdf(data, loc=x[0], scale=x[1])
 
 
-def freeze_dist(dist, loc, scale, shape=None):
+def freeze_dist(dist_str, params):
+    dist = getattr(stats, dist_str)
     if dist.shapes is None:
-        return dist(scale=scale, loc=loc)
+        return dist(loc=params[0], scale=params[1])
     else:
-        # TODO: code to count number of shape parameters for dist to put in dist func call
-        return dist(shape, scale=scale, loc=loc)
+        shapes = params[:-2]
+        return dist(*shapes, loc=params[-2], scale=params[-1])
 
 
 def callback(attr, old, new):
@@ -63,17 +62,19 @@ db['perc_emp'].iloc[-1] = 0.5 ** (1 / n)
 db['perc_emp'].iloc[0] = 1 - db['perc_emp'].iloc[-1]
 
 # %% Calculate distribution parameters for default (Normal) distribution.
-dist_type = stats.norm
-params_mle = dist_type.fit(db['data'])
-dist_mle = freeze_dist(dist_type, params_mle[0], params_mle[1])
+dist_type = 'norm'
+params_mle = getattr(stats, dist_type).fit(db['data'])
+dist_mle = freeze_dist(dist_type, params_mle)
 
 # %% Calculate percentiles and quantiles using fitted distribution and data as inputs.
 db['perc_mle'] = dist_mle.cdf(db['data'])
 db['quant_mle'] = dist_mle.ppf(db['perc_emp'])
 
-res = optimize.least_squares(myFun, params_mle, args=(db['data'], db['perc_emp']), method='lm')
-x = res.x
-dist_ls = freeze_dist(dist_type, loc=x[0], scale=x[1])
+# Need to make sure this works for unpacking params next
+res = optimize.least_squares(myFun, params_mle, args=(db['data'], dist_type, db['perc_emp']), method='lm')
+# res = optimize.least_squares(myFun, params_mle, args=(db['data'], db['perc_emp']), method='lm')
+params_ls = res.x
+dist_ls = freeze_dist(dist_type, params_ls)
 db['perc_ls'] = dist_ls.cdf(db['data'])
 db['quant_ls'] = dist_ls.ppf(db['perc_emp'])
 
@@ -91,7 +92,7 @@ plt.hist(db['data'], density=True)
 
 db.plot(x='mle_x', y='mle_cdf')
 db.plot(x='ls_x', y='ls_cdf', ax=plt.gca())
-plt.scatter(x=db['data'], y=db['perc_emp'], )
+plt.scatter(x=db['data'], y=db['perc_emp'])
 
 plt.show()
 
@@ -104,7 +105,6 @@ cdf_source = ColumnDataSource(data={
     'x': demo_domain,
     'y': demo_range
 })
-
 
 # %% Define Bokeh plots
 cdf = figure(plot_width=400, tools='pan,box_zoom')
