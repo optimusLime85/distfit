@@ -72,8 +72,8 @@ db['perc_mle'] = dist_mle.cdf(db['data'])
 db['quant_mle'] = dist_mle.ppf(db['perc_emp'])
 
 res = optimize.least_squares(myFun, params_mle, args=(db['data'], db['perc_emp']), method='lm')
-loc_ls, scale_ls = res.x
-dist_ls = freeze_dist(dist_type, loc=loc_ls, scale=scale_ls)
+x = res.x
+dist_ls = freeze_dist(dist_type, loc=x[0], scale=x[1])
 db['perc_ls'] = dist_ls.cdf(db['data'])
 db['quant_ls'] = dist_ls.ppf(db['perc_emp'])
 
