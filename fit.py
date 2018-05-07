@@ -10,44 +10,42 @@ from bokeh.plotting import figure
 
 
 # TODO: handle cases where least squares fails
-# TODO: put populating mle and least squares data in its own function
+# TODO: is it a problem to return db from calculate_fitted_data? Changing db inside the function changes it outside too.
 def myFun(x, data, dist_str, perc_emp):
-    return perc_emp - getattr(stats, dist_str).cdf(data, loc=x[0], scale=x[1])
-    # return perc_emp - stats.norm.cdf(data, loc=x[0], scale=x[1])
+    return perc_emp - getattr(stats, dist_str).cdf(data, *x)
 
 
 def freeze_dist(dist_str, params):
     dist = getattr(stats, dist_str)
-    if dist.shapes is None:
-        return dist(loc=params[0], scale=params[1])
-    else:
-        shapes = params[:-2]
-        return dist(*shapes, loc=params[-2], scale=params[-1])
+    return dist(*params)
+
+
+def calculate_fitted_data(db, dist_type):
+    # Calculate distribution parameters using mle, and calculate corresponding percentiles and quantiles
+    params_mle = getattr(stats, dist_type).fit(db['data'])
+    dist_mle = freeze_dist(dist_type, params_mle)
+    db['perc_mle'] = dist_mle.cdf(db['data'])
+    db['quant_mle'] = dist_mle.ppf(db['perc_emp'])
+
+    # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
+    ls_results = optimize.least_squares(myFun, params_mle, args=(db['data'], dist_type, db['perc_emp']), method='lm')
+    params_ls = ls_results.x
+    dist_ls = freeze_dist(dist_type, params_ls)
+    db['perc_ls'] = dist_ls.cdf(db['data'])
+    db['quant_ls'] = dist_ls.ppf(db['perc_emp'])
+
+    # return db, dist_mle, dist_ls
+    return db, dist_mle, dist_mle
 
 
 def callback(attr, old, new):
-    if menu.value == 'normal':
-        (loc, scale) = stats.norm.fit(db['data'])
-        norm_fit = stats.norm(loc=loc, scale=scale)
-        demo_domain = norm_fit.ppf(demo_range)
-        cdf_source.data['x'] = demo_domain
-        data_source.data['perc_mle'] = norm_fit.cdf(db['data'])
-        data_source.data['quant_mle'] = norm_fit.ppf(db['perc_emp'])
-    elif menu.value == 'lognormal':
-        (shape, loc, scale) = stats.lognorm.fit(db['data'])
-        lognorm_fit = stats.lognorm(s=shape, loc=loc, scale=scale)
-        demo_domain = lognorm_fit.ppf(demo_range)
-        cdf_source.data['x'] = demo_domain
-        data_source.data['perc_mle'] = lognorm_fit.cdf(db['data'])
-        data_source.data['quant_mle'] = lognorm_fit.ppf(db['perc_emp'])
-    elif menu.value == 'gamma':
-        (shape, loc, scale) = stats.gamma.fit(db['data'])
-        gamma_fit = stats.gamma(a=shape, loc=loc, scale=scale)
-        demo_domain = gamma_fit.ppf(demo_range)
-        cdf_source.data['x'] = demo_domain
-        data_source.data['perc_mle'] = gamma_fit.cdf(db['data'])
-        data_source.data['quant_mle'] = gamma_fit.ppf(db['perc_emp'])
-
+    dist_type = menu.value
+    _, dist_mle, dist_ls = calculate_fitted_data(db, dist_type)
+    demo_domain_mle = dist_mle.ppf(demo_range)
+    demo_domain_ls = dist_ls.ppf(demo_range)
+    cdf_source.data['x'] = demo_domain_mle
+    data_source.data['perc_mle'] = db['perc_mle']
+    data_source.data['quant_mle'] = db['quant_mle']
 
 # %% Get raw data.
 db = pd.read_csv('data.csv')
@@ -63,38 +61,25 @@ db['perc_emp'].iloc[0] = 1 - db['perc_emp'].iloc[-1]
 
 # %% Calculate distribution parameters for default (Normal) distribution.
 dist_type = 'norm'
-params_mle = getattr(stats, dist_type).fit(db['data'])
-dist_mle = freeze_dist(dist_type, params_mle)
+db, dist_mle, dist_ls = calculate_fitted_data(db, dist_type)
 
-# %% Calculate percentiles and quantiles using fitted distribution and data as inputs.
-db['perc_mle'] = dist_mle.cdf(db['data'])
-db['quant_mle'] = dist_mle.ppf(db['perc_emp'])
-
-# Need to make sure this works for unpacking params next
-res = optimize.least_squares(myFun, params_mle, args=(db['data'], dist_type, db['perc_emp']), method='lm')
-# res = optimize.least_squares(myFun, params_mle, args=(db['data'], db['perc_emp']), method='lm')
-params_ls = res.x
-dist_ls = freeze_dist(dist_type, params_ls)
-db['perc_ls'] = dist_ls.cdf(db['data'])
-db['quant_ls'] = dist_ls.ppf(db['perc_emp'])
-
-db['mle_cdf'] = np.linspace(0.000001, 0.999999, len(db))
-db['mle_x'] = dist_mle.ppf(db['mle_cdf'])
-db['mle_pdf'] = dist_mle.pdf(db['mle_x'])
-
-db['ls_cdf'] = np.linspace(0.000001, 0.999999, len(db))
-db['ls_x'] = dist_ls.ppf(db['ls_cdf'])
-db['ls_pdf'] = dist_ls.pdf(db['ls_x'])
-
-db.plot(x='mle_x', y='mle_pdf')
-db.plot(x='ls_x', y='ls_pdf', ax=plt.gca())
-plt.hist(db['data'], density=True)
-
-db.plot(x='mle_x', y='mle_cdf')
-db.plot(x='ls_x', y='ls_cdf', ax=plt.gca())
-plt.scatter(x=db['data'], y=db['perc_emp'])
-
-plt.show()
+# db['mle_cdf'] = np.linspace(0.000001, 0.999999, len(db))
+# db['mle_x'] = dist_mle.ppf(db['mle_cdf'])
+# db['mle_pdf'] = dist_mle.pdf(db['mle_x'])
+#
+# db['ls_cdf'] = np.linspace(0.000001, 0.999999, len(db))
+# db['ls_x'] = dist_ls.ppf(db['ls_cdf'])
+# db['ls_pdf'] = dist_ls.pdf(db['ls_x'])
+#
+# db.plot(x='mle_x', y='mle_pdf')
+# db.plot(x='ls_x', y='ls_pdf', ax=plt.gca())
+# plt.hist(db['data'], density=True)
+#
+# db.plot(x='mle_x', y='mle_cdf')
+# db.plot(x='ls_x', y='ls_cdf', ax=plt.gca())
+# plt.scatter(x=db['data'], y=db['perc_emp'])
+#
+# plt.show()
 
 data_source = ColumnDataSource(db)
 
@@ -119,8 +104,9 @@ qq.circle('data', 'quant_mle', source=data_source)
 # %% Plot fitted line
 cdf.line('x', 'y', source=cdf_source)
 
-menu = Select(options=['normal', 'lognormal', 'gamma'],
-              value='normal', title='Distribution')
+# options = ['norm', 'lognorm', 'gamma']
+options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
+menu = Select(options=options, value='norm', title='Distribution')
 menu.on_change('value', callback)
 
 layout = row(menu, cdf, column(pp, qq))
