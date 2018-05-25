@@ -11,8 +11,11 @@ from bokeh.plotting import figure
 
 # TODO: handle cases where least squares fails
 # TODO: is it a problem to return db from calculate_fitted_data? Changing db inside the function changes it outside too.
-def myFun(x, data, dist_str, perc_emp):
-    return perc_emp - getattr(stats, dist_str).cdf(data, *x)
+# TODO: add histograms, more graphs.
+# TODO: allow for fixed location parameter.
+def min_fun(x, data, dist_str):
+    res = stats.probplot(data, x, dist=dist_str)
+    return res[0][0] - res[0][1]
 
 
 def freeze_dist(dist_str, params):
@@ -28,14 +31,13 @@ def calculate_fitted_data(db, dist_type):
     db['quant_mle'] = dist_mle.ppf(db['perc_emp'])
 
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
-    ls_results = optimize.least_squares(myFun, params_mle, args=(db['data'], dist_type, db['perc_emp']), method='lm')
+    ls_results = optimize.least_squares(min_fun, params_mle, args=(db['data'], dist_type), method='lm')
     params_ls = ls_results.x
     dist_ls = freeze_dist(dist_type, params_ls)
     db['perc_ls'] = dist_ls.cdf(db['data'])
     db['quant_ls'] = dist_ls.ppf(db['perc_emp'])
 
-    # return db, dist_mle, dist_ls
-    return db, dist_mle, dist_mle
+    return db, dist_mle, dist_ls
 
 
 def callback(attr, old, new):
@@ -63,14 +65,15 @@ db['perc_emp'].iloc[0] = 1 - db['perc_emp'].iloc[-1]
 dist_type = 'norm'
 db, dist_mle, dist_ls = calculate_fitted_data(db, dist_type)
 
-# db['mle_cdf'] = np.linspace(0.000001, 0.999999, len(db))
-# db['mle_x'] = dist_mle.ppf(db['mle_cdf'])
-# db['mle_pdf'] = dist_mle.pdf(db['mle_x'])
-#
-# db['ls_cdf'] = np.linspace(0.000001, 0.999999, len(db))
-# db['ls_x'] = dist_ls.ppf(db['ls_cdf'])
-# db['ls_pdf'] = dist_ls.pdf(db['ls_x'])
-#
+# TODO: make theoretical distributions not dependent on length of db.
+db['mle_cdf'] = np.linspace(0.000001, 0.999999, len(db))
+db['mle_x'] = dist_mle.ppf(db['mle_cdf'])
+db['mle_pdf'] = dist_mle.pdf(db['mle_x'])
+
+db['ls_cdf'] = np.linspace(0.000001, 0.999999, len(db))
+db['ls_x'] = dist_ls.ppf(db['ls_cdf'])
+db['ls_pdf'] = dist_ls.pdf(db['ls_x'])
+
 # db.plot(x='mle_x', y='mle_pdf')
 # db.plot(x='ls_x', y='ls_pdf', ax=plt.gca())
 # plt.hist(db['data'], density=True)
