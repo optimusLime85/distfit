@@ -2,12 +2,10 @@
     a set of functions that might normally be available through extra packages
     such as SciPy but that are not easily added to the python that comes with ABAQUS
 """
-#This is Mark's change
-# ...and this is his second
+
 import math
 import csv
 
-#test
 def sigmoidLog(x, yMax, xLim, pLim=0.99):
     """ logistic sigmoid function that will reach pLim(%) of yMax at xLim. Plim must be less than 1 (this is not checked) """
     alpha = -math.log(1/pLim-1)/xLim
