@@ -7,7 +7,7 @@
 import math
 import csv
 
-
+#test
 def sigmoidLog(x, yMax, xLim, pLim=0.99):
     """ logistic sigmoid function that will reach pLim(%) of yMax at xLim. Plim must be less than 1 (this is not checked) """
     alpha = -math.log(1/pLim-1)/xLim
