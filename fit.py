@@ -4,7 +4,7 @@ import scipy.stats as stats
 import scipy.optimize as optimize
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, widgetbox, gridplot
-from bokeh.models import ColumnDataSource, Select
+from bokeh.models import ColumnDataSource, Select, DataTable, TableColumn, NumberFormatter
 from bokeh.plotting import figure
 
 
@@ -65,7 +65,13 @@ def callback(attr, old, new):
 
     quantile_unity.data['x'] = (0, max(max(data_source.data['quant_ls']), max(data_source.data['quant_mle'])))
     quantile_unity.data['y'] = (0, max(max(data_source.data['quant_ls']), max(data_source.data['quant_mle'])))
-    # quantile_unity.data['y'] = (0, max(max(data_source.data['quant_ls']), max(data_source.data['quant_mle'])))
+
+    metrics_source.data['mean'] = (df['data'].mean(), dist_mle.mean(), dist_ls.mean())
+    metrics_source.data['sd'] = (df['data'].std(), dist_mle.std(), dist_ls.std())
+    metrics_source.data['scale'] = (np.nan, dist_mle.args[-1], dist_ls.args[-1])
+    metrics_source.data['loc'] = (np.nan, dist_mle.args[-2], dist_ls.args[-2])
+    metrics_source.data['shape'] = (np.nan, dist_mle.args[:-2], dist_ls.args[:-2])
+
 
 # %% Get raw data.
 df = pd.read_csv('data.csv').dropna()
@@ -82,16 +88,32 @@ df, dist_mle, dist_ls = calculate_fitted_data(df, dist_type)
 
 # TODO: make theoretical distributions not dependent on length of df.
 df['cdf_y'] = np.linspace(0.000001, 0.999999, len(df))
+df_fit = pd.DataFrame(data=np.linspace(0.000001, 0.999999, 1000), columns=['cdf_y'])
 
 df['x_mle'] = dist_mle.ppf(df['cdf_y'])
 df['pdf_mle'] = dist_mle.pdf(df['x_mle'])
+df_fit['x_mle'] = dist_mle.ppf(df_fit['cdf_y'])
+df_fit['pdf_mle'] = dist_mle.pdf(df_fit['x_mle'])
 
 df['x_ls'] = dist_ls.ppf(df['cdf_y'])
 df['pdf_ls'] = dist_ls.pdf(df['x_ls'])
+df_fit['x_ls'] = dist_ls.ppf(df_fit['cdf_y'])
+df_fit['pdf_ls'] = dist_ls.pdf(df_fit['x_ls'])
 
 data_source = ColumnDataSource(df)
 quantile_unity = ColumnDataSource(dict(x=(0, max(max(df['quant_ls']), max(df['quant_mle']))),
                                        y=(0, max(max(df['quant_ls']), max(df['quant_mle'])))))
+
+metrics_source = ColumnDataSource(
+    dict(
+        method=('data', 'mle', 'ls'),
+        mean=(df['data'].mean(), dist_mle.mean(), dist_ls.mean()),
+        sd=(df['data'].std(), dist_mle.std(), dist_ls.std()),
+        scale=(np.nan, dist_mle.args[-1], dist_ls.args[-1]),
+        loc=(np.nan, dist_mle.args[-2], dist_ls.args[-2]),
+        shape=(np.nan, dist_mle.args[:-2], dist_ls.args[:-2]),
+    )
+)
 
 # %% Calculate datapoints to represent the assumed distribution.
 demo_range = np.linspace(0.000001, 0.999999, 1000)
@@ -144,8 +166,21 @@ qq.line('x', y='y', color='gray', source=quantile_unity)
 
 options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
 menu = Select(options=options, value='norm', title='Distribution')
-widgets = widgetbox(menu, width=400)
 menu.on_change('value', callback)
+
+num_format = NumberFormatter()
+num_format.format = '0.00'
+metrics_columns = [
+    TableColumn(field='method', title='Source'),
+    TableColumn(field='mean', title='Mean', formatter=num_format),
+    TableColumn(field='sd', title='Std Dev', formatter=num_format),
+    TableColumn(field='scale', title='Scale Param', formatter=num_format),
+    TableColumn(field='loc', title='Loc Param', formatter=num_format),
+    TableColumn(field='shape', title='Shape Param', formatter=num_format),
+]
+metrics_table = DataTable(source=metrics_source, columns=metrics_columns)
+
+widgets = widgetbox(metrics_table, menu, width=400)
 
 grid = gridplot([hist, cdf, widgets],
                 [pp, qq, None])
