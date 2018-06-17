@@ -4,14 +4,14 @@ import scipy.stats as stats
 import scipy.optimize as optimize
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, widgetbox, gridplot
-from bokeh.models import ColumnDataSource, Select, Title
+from bokeh.models import ColumnDataSource, Select
 from bokeh.plotting import figure
 
 
 # TODO: handle cases where least squares fails
-# TODO: is it a problem to return db from calculate_fitted_data? Changing db inside the function changes it outside too.
-# TODO: add histograms, more graphs.
+# TODO: is it a problem to return df from calculate_fitted_data? Changing df inside the function changes it outside too.
 # TODO: allow for fixed location parameter.
+# TODO: display fit and distribution metrics
 def perc_emp_filliben(indices):
     n_values = len(indices)
     perc_emp = ((indices + 1) - 0.3175) / (n_values + 0.365)
@@ -80,7 +80,7 @@ df['perc_emp'] = perc_emp_filliben(df.index.get_values())
 dist_type = 'norm'
 df, dist_mle, dist_ls = calculate_fitted_data(df, dist_type)
 
-# TODO: make theoretical distributions not dependent on length of db.
+# TODO: make theoretical distributions not dependent on length of df.
 df['cdf_y'] = np.linspace(0.000001, 0.999999, len(df))
 
 df['x_mle'] = dist_mle.ppf(df['cdf_y'])
@@ -92,7 +92,6 @@ df['pdf_ls'] = dist_ls.pdf(df['x_ls'])
 data_source = ColumnDataSource(df)
 quantile_unity = ColumnDataSource(dict(x=(0, max(max(df['quant_ls']), max(df['quant_mle']))),
                                        y=(0, max(max(df['quant_ls']), max(df['quant_mle'])))))
-# quantile_unity = ColumnDataSource(dict(x=(0, max(df['data'])), y=(0, max(df['data']))))
 
 # %% Calculate datapoints to represent the assumed distribution.
 demo_range = np.linspace(0.000001, 0.999999, 1000)
