@@ -8,10 +8,10 @@ from bokeh.models import ColumnDataSource, Select, DataTable, TableColumn, Numbe
 from bokeh.plotting import figure
 
 
-# TODO: handle cases where least squares fails
+# TODO: handle cases where least squares fails.
 # TODO: is it a problem to return df from calculate_fitted_data? Changing df inside the function changes it outside too.
 # TODO: allow for fixed location parameter.
-# TODO: display fit and distribution metrics
+# TODO: display fit metrics.
 def perc_emp_filliben(indices):
     n_values = len(indices)
     perc_emp = ((indices + 1) - 0.3175) / (n_values + 0.365)
@@ -53,24 +53,24 @@ def callback(attr, old, new):
     dist_type = menu.value
     _, dist_mle, dist_ls = calculate_fitted_data(df, dist_type)
 
-    data_source.data['x_mle'] = dist_mle.ppf(data_source.data['cdf_y'])
-    data_source.data['pdf_mle'] = dist_mle.pdf(data_source.data['x_mle'])
+    data_fit.data['x_mle'] = dist_mle.ppf(data_fit.data['cdf_y'])
+    data_fit.data['pdf_mle'] = dist_mle.pdf(data_fit.data['x_mle'])
     data_source.data['perc_mle'] = dist_mle.cdf(data_source.data['data'])
     data_source.data['quant_mle'] = dist_mle.ppf(data_source.data['perc_emp'])
 
-    data_source.data['x_ls'] = dist_ls.ppf(data_source.data['cdf_y'])
-    data_source.data['pdf_ls'] = dist_ls.pdf(data_source.data['x_ls'])
+    data_fit.data['x_ls'] = dist_ls.ppf(data_fit.data['cdf_y'])
+    data_fit.data['pdf_ls'] = dist_ls.pdf(data_fit.data['x_ls'])
     data_source.data['perc_ls'] = dist_ls.cdf(data_source.data['data'])
     data_source.data['quant_ls'] = dist_ls.ppf(data_source.data['perc_emp'])
-
-    quantile_unity.data['x'] = (0, max(max(data_source.data['quant_ls']), max(data_source.data['quant_mle'])))
-    quantile_unity.data['y'] = (0, max(max(data_source.data['quant_ls']), max(data_source.data['quant_mle'])))
 
     metrics_source.data['mean'] = (df['data'].mean(), dist_mle.mean(), dist_ls.mean())
     metrics_source.data['sd'] = (df['data'].std(), dist_mle.std(), dist_ls.std())
     metrics_source.data['scale'] = (np.nan, dist_mle.args[-1], dist_ls.args[-1])
     metrics_source.data['loc'] = (np.nan, dist_mle.args[-2], dist_ls.args[-2])
-    metrics_source.data['shape'] = (np.nan, dist_mle.args[:-2], dist_ls.args[:-2])
+    if dist_mle.args[:-2]:
+        metrics_source.data['shape'] = (np.nan, dist_mle.args[:-2], dist_ls.args[:-2])
+    else:
+        metrics_source.data['shape'] = (np.nan, np.nan, np.nan)
 
 
 # %% Get raw data.
@@ -86,32 +86,24 @@ df['perc_emp'] = perc_emp_filliben(df.index.get_values())
 dist_type = 'norm'
 df, dist_mle, dist_ls = calculate_fitted_data(df, dist_type)
 
-# TODO: make theoretical distributions not dependent on length of df.
-df['cdf_y'] = np.linspace(0.000001, 0.999999, len(df))
 df_fit = pd.DataFrame(data=np.linspace(0.000001, 0.999999, 1000), columns=['cdf_y'])
 
-df['x_mle'] = dist_mle.ppf(df['cdf_y'])
-df['pdf_mle'] = dist_mle.pdf(df['x_mle'])
 df_fit['x_mle'] = dist_mle.ppf(df_fit['cdf_y'])
 df_fit['pdf_mle'] = dist_mle.pdf(df_fit['x_mle'])
 
-df['x_ls'] = dist_ls.ppf(df['cdf_y'])
-df['pdf_ls'] = dist_ls.pdf(df['x_ls'])
 df_fit['x_ls'] = dist_ls.ppf(df_fit['cdf_y'])
 df_fit['pdf_ls'] = dist_ls.pdf(df_fit['x_ls'])
 
 data_source = ColumnDataSource(df)
-quantile_unity = ColumnDataSource(dict(x=(0, max(max(df['quant_ls']), max(df['quant_mle']))),
-                                       y=(0, max(max(df['quant_ls']), max(df['quant_mle'])))))
-
+data_fit = ColumnDataSource(df_fit)
 metrics_source = ColumnDataSource(
     dict(
-        method=('data', 'mle', 'ls'),
+        method=('Source Data', 'Maximum Likelihood', 'Least Squares (Quantiles)'),
         mean=(df['data'].mean(), dist_mle.mean(), dist_ls.mean()),
         sd=(df['data'].std(), dist_mle.std(), dist_ls.std()),
         scale=(np.nan, dist_mle.args[-1], dist_ls.args[-1]),
         loc=(np.nan, dist_mle.args[-2], dist_ls.args[-2]),
-        shape=(np.nan, dist_mle.args[:-2], dist_ls.args[:-2]),
+        shape=(np.nan, np.nan, np.nan),  # This is because default dist, norm, has no shape values
     )
 )
 
@@ -138,13 +130,13 @@ hist = figure(plot_width=400, tools='pan,box_zoom,reset', title='Histogram',
 hist.yaxis.axis_label = 'Probability Density'
 hist.yaxis.axis_label_text_font_style = 'bold'
 hist.vbar(x='bin_mids', width='bin_widths', top='bin_heights', source=hist_source, color='red')
-hist.line(x='x_mle', y='pdf_mle', color='green', source=data_source, line_width=3)
-hist.line(x='x_ls', y='pdf_ls', color='blue', source=data_source, line_width=3)
+hist.line(x='x_mle', y='pdf_mle', color='green', source=data_fit, line_width=3)
+hist.line(x='x_ls', y='pdf_ls', color='blue', source=data_fit, line_width=3)
 
 cdf = figure(plot_width=400, tools='pan,box_zoom,reset', title='CDF')
 cdf.circle('data', 'perc_emp', color='gray', source=data_source, alpha=0.5)
-cdf.line('x_mle', 'cdf_y', color='green', source=data_source, line_width=3)
-cdf.line('x_ls', 'cdf_y', color='blue', source=data_source, line_width=3)
+cdf.line('x_mle', 'cdf_y', color='green', source=data_fit, line_width=3)
+cdf.line('x_ls', 'cdf_y', color='blue', source=data_fit, line_width=3)
 
 pp = figure(plot_width=400, tools='pan,box_zoom,reset', title='pp')
 pp.xaxis.axis_label = 'Fitted Probabilities'
@@ -162,20 +154,22 @@ qq.xaxis.axis_label_text_font_style = 'bold'
 qq.yaxis.axis_label_text_font_style = 'bold'
 qq.circle('quant_mle', 'data', color='green', source=data_source)
 qq.circle('quant_ls', 'data', color='blue', source=data_source)
-qq.line('x', y='y', color='gray', source=quantile_unity)
+qq.line(x=(0, max(df['data'])), y=(0, max(df['data'])), color='gray')
 
+# Dropdown widget
 options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
 menu = Select(options=options, value='norm', title='Distribution')
 menu.on_change('value', callback)
 
+# Table widget
 num_format = NumberFormatter()
-num_format.format = '0.00'
+num_format.format = '0.00000'
 metrics_columns = [
     TableColumn(field='method', title='Source'),
     TableColumn(field='mean', title='Mean', formatter=num_format),
     TableColumn(field='sd', title='Std Dev', formatter=num_format),
-    TableColumn(field='scale', title='Scale Param', formatter=num_format),
     TableColumn(field='loc', title='Loc Param', formatter=num_format),
+    TableColumn(field='scale', title='Scale Param', formatter=num_format),
     TableColumn(field='shape', title='Shape Param', formatter=num_format),
 ]
 metrics_table = DataTable(source=metrics_source, columns=metrics_columns)
