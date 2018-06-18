@@ -10,8 +10,10 @@ from bokeh.plotting import figure
 
 # TODO: handle cases where least squares fails.
 # TODO: is it a problem to return df from calculate_fitted_data? Changing df inside the function changes it outside too.
-# TODO: allow for fixed location parameter.
+# TODO: allow for manual input of location parameter.
 # TODO: display fit metrics.
+# TODO: add legend.
+# TODO: add option to save plot.
 def perc_emp_filliben(indices):
     n_values = len(indices)
     perc_emp = ((indices + 1) - 0.3175) / (n_values + 0.365)
@@ -124,7 +126,7 @@ hist_source = ColumnDataSource(hist_df)
 
 # %% Define Bokeh plots
 bin_range = max(bin_edges) - min(bin_edges)
-hist = figure(plot_width=400, tools='pan,box_zoom,reset', title='Histogram',
+hist = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='Histogram',
               x_range=[min(bin_edges) - 0.1 * bin_range, max(bin_edges) + 0.1 * bin_range],
               y_range=[0, max(bin_heights) * 1.1])
 hist.yaxis.axis_label = 'Probability Density'
@@ -133,13 +135,13 @@ hist.vbar(x='bin_mids', width='bin_widths', top='bin_heights', source=hist_sourc
 hist.line(x='x_mle', y='pdf_mle', color='green', source=data_fit, line_width=3)
 hist.line(x='x_ls', y='pdf_ls', color='blue', source=data_fit, line_width=3)
 
-cdf = figure(plot_width=400, tools='pan,box_zoom,reset', title='CDF')
+cdf = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='CDF')
 cdf.circle('data', 'perc_emp', color='gray', source=data_source, alpha=0.5)
 cdf.line('x_mle', 'cdf_y', color='green', source=data_fit, line_width=3)
 cdf.line('x_ls', 'cdf_y', color='blue', source=data_fit, line_width=3)
 
-pp = figure(plot_width=400, tools='pan,box_zoom,reset', title='pp')
-pp.xaxis.axis_label = 'Fitted Probabilities'
+pp = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='pp')
+pp.xaxis.axis_label = 'Theoretical Probabilities'
 pp.yaxis.axis_label = 'Empirical Probabilities'
 pp.xaxis.axis_label_text_font_style = 'bold'
 pp.yaxis.axis_label_text_font_style = 'bold'
@@ -147,8 +149,8 @@ pp.circle('perc_mle', 'perc_emp', color='green', source=data_source)
 pp.circle('perc_ls', 'perc_emp', color='blue', source=data_source)
 pp.line(x=[0, 1], y=[0, 1], color='gray')
 
-qq = figure(plot_width=400, tools='pan,box_zoom,reset', title='qq')
-qq.xaxis.axis_label = 'Fitted Quantiles'
+qq = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='qq')
+qq.xaxis.axis_label = 'Theoretical Quantiles'
 qq.yaxis.axis_label = 'Empirical Quantiles'
 qq.xaxis.axis_label_text_font_style = 'bold'
 qq.yaxis.axis_label_text_font_style = 'bold'
@@ -172,7 +174,7 @@ metrics_columns = [
     TableColumn(field='scale', title='Scale Param', formatter=num_format),
     TableColumn(field='shape', title='Shape Param', formatter=num_format),
 ]
-metrics_table = DataTable(source=metrics_source, columns=metrics_columns)
+metrics_table = DataTable(source=metrics_source, columns=metrics_columns, height=100)
 
 widgets = widgetbox(metrics_table, menu, width=400)
 
