@@ -4,7 +4,7 @@ import scipy.stats as stats
 import scipy.optimize as optimize
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, widgetbox, gridplot
-from bokeh.models import ColumnDataSource, Select, DataTable, TableColumn, NumberFormatter, TextInput
+from bokeh.models import ColumnDataSource, Select, DataTable, TableColumn, NumberFormatter
 from bokeh.plotting import figure
 
 
@@ -53,14 +53,6 @@ def calculate_fitted_data(df, dist_type):
 
 def callback(attr, old, new):
     dist_type = menu.value
-    loc = loc_val_input.value
-
-    if loc == 'none':
-        fixed == False
-    else:
-        loc = float(loc)
-        fixed == True
-
     _, dist_mle, dist_ls = calculate_fitted_data(df, dist_type)
 
     data_fit.data['x_mle'] = dist_mle.ppf(data_fit.data['cdf_y'])
@@ -82,18 +74,8 @@ def callback(attr, old, new):
     else:
         metrics_source.data['shape'] = (np.nan, np.nan, np.nan)
 
+
 if 'bk_script' in __name__:
-
-def loc_val(attr, old, new):
-    print('hi')
-    print(loc_val_input.value)
-
-
-# %% Get raw data.
-df = pd.read_csv('data.csv').dropna()
-df.columns = ['post', 'data']
-df = df.sort_values(by='data').reset_index(drop=True)
-n = df['data'].count()
     # %% Get raw data.
     df = pd.read_csv('data.csv').dropna()
     df.columns = ['post', 'data']
@@ -183,18 +165,6 @@ n = df['data'].count()
     menu = Select(options=options, value='norm', title='Distribution')
     menu.on_change('value', callback)
 
-# Table widget
-num_format = NumberFormatter()
-num_format.format = '0.00000'
-metrics_columns = [
-    TableColumn(field='method', title='Source'),
-    TableColumn(field='mean', title='Mean', formatter=num_format),
-    TableColumn(field='sd', title='Std Dev', formatter=num_format),
-    TableColumn(field='loc', title='Loc Param', formatter=num_format),
-    TableColumn(field='scale', title='Scale Param', formatter=num_format),
-    TableColumn(field='shape', title='Shape Param', formatter=num_format),
-]
-metrics_table = DataTable(source=metrics_source, columns=metrics_columns, height=100)
     # Table widget
     num_format = NumberFormatter()
     num_format.format = '0.00000'
@@ -208,11 +178,6 @@ metrics_table = DataTable(source=metrics_source, columns=metrics_columns, height
     ]
     metrics_table = DataTable(source=metrics_source, columns=metrics_columns, height=100)
 
-# Text input widget
-loc_val_input = TextInput(title='Specify loc value:', placeholder='none', value='')
-loc_val_input.on_change('value', loc_val)
-
-widgets = widgetbox(metrics_table, menu, loc_val_input, width=400)
     widgets = widgetbox(metrics_table, menu, width=400)
 
     grid = gridplot([hist, cdf, widgets],
