@@ -10,9 +10,8 @@ from bokeh.plotting import figure
 
 # TODO: handle cases where least squares fails.
 # TODO: is it a problem to return df from calculate_fitted_data? Changing df inside the function changes it outside too.
-# TODO: allow for manual input of location parameter.
+# TODO: when using manual input of loc parameter, handle case where dataset is empty because outside of ub/lb
 # TODO: display fit metrics.
-# TODO: add legend.
 # TODO: add option to save plot.
 def perc_emp_filliben(indices):
     n_values = len(indices)
@@ -46,7 +45,20 @@ def calculate_fitted_data(df, dist_type, loc):
     if loc == '':
         params_mle = getattr(stats, dist_type).fit(df['data'])
     else:
-        params_mle = getattr(stats, dist_type).fit(df['data'], floc=float(loc))
+        # Remove data points outside of the lower/upper bounds of dist_type, a requirement for scipy's fit method.
+        general_dist = getattr(stats, dist_type)
+        shapes = general_dist.shapes
+        if shapes is None:
+            n_shapes = 0
+        else:
+            n_shapes = len(shapes.split(','))
+        general_params = n_shapes*[1] + [float(loc), 1]
+        lb, ub = general_dist(*general_params).ppf(0), general_dist(*general_params).ppf(1)
+        data_subset = df['data'][(df['data'] > lb) & (df['data'] < ub)]
+
+        # Use scipy's fit method to get params_mle
+        params_mle = getattr(stats, dist_type).fit(data_subset, floc=float(loc))
+
     dist_mle = freeze_dist(dist_type, params_mle)
     df['perc_mle'] = dist_mle.cdf(df['data'])
     df['quant_mle'] = dist_mle.ppf(df['perc_emp'])
@@ -73,8 +85,6 @@ def calculate_fitted_data(df, dist_type, loc):
 
 
 def callback(attr, old, new):
-    # TODO: Warning occurs when there is a value in the loc specification box and then I change the distribution
-    # TODO: Gamma doesn't work with min value because I get warning saying x cannot be below loc. Need to recalc x.
     dist_type = menu.value
     loc = loc_val_input.value
 
@@ -100,7 +110,7 @@ def callback(attr, old, new):
         metrics_source.data['shape'] = (np.nan, np.nan, np.nan)
 
 
-if 'bk_script' in __name__:
+if ('bk_script' in __name__) or (__name__ == '__main__'):
     # %% Get raw data.
     df = pd.read_csv('data.csv').dropna()
     df.columns = ['post', 'data']
@@ -156,23 +166,24 @@ if 'bk_script' in __name__:
     hist_source = ColumnDataSource(hist_df)
 
     # %% Define Bokeh plots
+    tools = 'pan,box_zoom,reset,save'
     bin_range = max(bin_edges) - min(bin_edges)
-    hist = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='Histogram',
+    hist = figure(plot_width=400, plot_height=300, tools=tools, title='Histogram',
                   x_range=[min(bin_edges) - 0.1 * bin_range, max(bin_edges) + 0.1 * bin_range],
                   y_range=[0, max(bin_heights) * 1.1])
     hist.yaxis.axis_label = 'Probability Density'
     hist.yaxis.axis_label_text_font_style = 'bold'
-    hist.vbar(x='bin_mids', width='bin_widths', top='bin_heights', source=hist_source, color='red')
-    hist.line(x='x_mle', y='pdf_mle', color='green', source=data_fit, line_width=3)
-    hist.line(x='x_ls', y='pdf_ls', color='blue', source=data_fit, line_width=3)
+    hist.vbar(x='bin_mids', width='bin_widths', top='bin_heights', source=hist_source, color='red', legend='Data')
+    hist.line(x='x_mle', y='pdf_mle', color='green', source=data_fit, line_width=3, legend='MLE')
+    hist.line(x='x_ls', y='pdf_ls', color='blue', source=data_fit, line_width=3, legend='LS')
 
-    cdf = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='CDF',
+    cdf = figure(plot_width=400, plot_height=300, tools=tools, title='CDF',
                  x_range=[min(bin_edges) - 0.1 * bin_range, max(bin_edges) + 0.1 * bin_range])
     cdf.circle('data', 'perc_emp', color='gray', source=data_source, alpha=0.5)
     cdf.line('x_mle', 'cdf_y', color='green', source=data_fit, line_width=3)
     cdf.line('x_ls', 'cdf_y', color='blue', source=data_fit, line_width=3)
 
-    pp = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='pp')
+    pp = figure(plot_width=400, plot_height=300, tools=tools, title='pp')
     pp.xaxis.axis_label = 'Theoretical Probabilities'
     pp.yaxis.axis_label = 'Empirical Probabilities'
     pp.xaxis.axis_label_text_font_style = 'bold'
@@ -181,7 +192,7 @@ if 'bk_script' in __name__:
     pp.circle('perc_ls', 'perc_emp', color='blue', source=data_source)
     pp.line(x=[0, 1], y=[0, 1], color='gray')
 
-    qq = figure(plot_width=400, plot_height=300, tools='pan,box_zoom,reset', title='qq')
+    qq = figure(plot_width=400, plot_height=300, tools=tools, title='qq')
     qq.xaxis.axis_label = 'Theoretical Quantiles'
     qq.yaxis.axis_label = 'Empirical Quantiles'
     qq.xaxis.axis_label_text_font_style = 'bold'
@@ -214,6 +225,7 @@ if 'bk_script' in __name__:
 
     widgets = widgetbox(metrics_table, menu, loc_val_input, width=400)
 
-    grid = gridplot([hist, cdf, widgets],
-                    [pp, qq, None])
+    grid = gridplot([hist, cdf],
+                    [pp, qq],
+                    [widgets, None])
     curdoc().add_root(grid)
