@@ -11,7 +11,6 @@ from bokeh.plotting import figure
 # TODO: handle cases where least squares fails.
 # TODO: is it a problem to return df from calculate_fitted_data? Changing df inside the function changes it outside too.
 # TODO: when using manual input of loc parameter, handle case where dataset is empty because outside of ub/lb
-# TODO: check to see if aic metric is correct.
 # TODO: add option to save plot.
 def perc_emp_filliben(indices):
     n_values = len(indices)
@@ -30,10 +29,9 @@ def calc_k(dist, fixed_loc):
     return k
 
 
-def calc_aic(y, y_hat, k):
-    rss = sum((y - y_hat) ** 2)
-    n = len(y)
-    return 2 * k + n * np.log(rss / n)
+def calc_aic(likelihoods, k):
+    likelihoods = likelihoods[likelihoods>0]
+    return 2*k - 2*sum(np.log(likelihoods))
     pass
 
 
@@ -103,10 +101,10 @@ def calculate_fitted_data(df, dist_type, loc):
 def callback(attr, old, new):
     dist_type = menu.value
     loc = loc_val_input.value
-    if loc == 'none':
-        fixed_loc = True
-    else:
+    if loc == '':
         fixed_loc = False
+    else:
+        fixed_loc = True
 
     _, dist_mle, dist_ls = calculate_fitted_data(df, dist_type, loc)
 
@@ -125,9 +123,13 @@ def callback(attr, old, new):
     metrics_source.data['scale'] = (np.nan, dist_mle.args[-1], dist_ls.args[-1])
     metrics_source.data['loc'] = (np.nan, dist_mle.args[-2], dist_ls.args[-2])
     k = calc_k(getattr(stats, dist_type), fixed_loc)
-    metrics_source.data['aic'] = ((np.nan,
-                                   calc_aic(data_source.data['data'], data_source.data['quant_mle'], k),
-                                   calc_aic(data_source.data['data'], data_source.data['quant_ls'], k)))
+    if fixed_loc:
+        mle_likelihoods = dist_mle.pdf(data_source.data['data'][data_source.data['data'] > float(loc)])
+        ls_likelihoods = dist_ls.pdf(data_source.data['data'][data_source.data['data'] > float(loc)])
+    else:
+        mle_likelihoods = dist_mle.pdf(data_source.data['data'])
+        ls_likelihoods = dist_ls.pdf(data_source.data['data'])
+    metrics_source.data['aic'] = (np.nan, calc_aic(mle_likelihoods, k), calc_aic(ls_likelihoods, k))
     if dist_mle.args[:-2]:
         metrics_source.data['shape'] = (np.nan, dist_mle.args[:-2], dist_ls.args[:-2])
     else:
@@ -171,9 +173,7 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
             scale=(np.nan, dist_mle.args[-1], dist_ls.args[-1]),
             loc=(np.nan, dist_mle.args[-2], dist_ls.args[-2]),
             shape=(np.nan, np.nan, np.nan),  # This is because default dist, norm, has no shape values
-            aic=(np.nan,
-                 calc_aic(df['data'], df['quant_mle'], 2),
-                 calc_aic(df['data'], df['quant_ls'], 2)),
+            aic=(np.nan, calc_aic(dist_mle.pdf(df['data']), 2), calc_aic(dist_ls.pdf(df['data']), 2)),
         )
     )
 
