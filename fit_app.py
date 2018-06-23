@@ -54,7 +54,7 @@ def callback(attr, old, new):
 
 
 if ('bk_script' in __name__) or (__name__ == '__main__'):
-    # %% Get raw data.
+    # Get raw data.
     fit_dir = pathlib.Path(os.getcwd())
     data_dir = fit_dir / pathlib.Path('data')
     df = pd.read_csv(data_dir / pathlib.Path('data.csv')).dropna()
@@ -62,14 +62,12 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     df = df.sort_values(by='data').reset_index(drop=True)
     n = df['data'].count()
 
-    # %% Calculate empirical percentiles for ordered (ranked) data.
+    # Calculate empirical percentiles for ordered (ranked) data.
     df['perc_emp'] = fit.perc_emp_filliben(df.index.get_values())
-    # df['perc_emp'] = perc_emp_filliben(df.index.get_values())
 
-    # %% Calculate distribution parameters for default (Normal) distribution.
+    # Calculate distribution parameters for default (Normal) distribution.
     dist_type = 'norm'
     df, dist_mle, dist_ls = fit.calculate_fitted_data(df, dist_type, '')
-    # df, dist_mle, dist_ls = calculate_fitted_data(df, dist_type, '')
 
     df_fit = pd.DataFrame(data=np.linspace(0.000001, 0.999999, 1000), columns=['cdf_y'])
 
@@ -90,7 +88,6 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
             loc=(np.nan, dist_mle.args[-2], dist_ls.args[-2]),
             shape=(np.nan, np.nan, np.nan),  # This is because default dist, norm, has no shape values
             aic=(np.nan, fit.calc_aic(dist_mle.pdf(df['data']), 2), fit.calc_aic(dist_ls.pdf(df['data']), 2)),
-            # aic=(np.nan, calc_aic(dist_mle.pdf(df['data']), 2), calc_aic(dist_ls.pdf(df['data']), 2)),
         )
     )
 
@@ -102,15 +99,15 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
         'y': demo_range
     })
 
-    # Define histogram
+    # Define tools for Bokeh plots
+    tools = 'pan,box_zoom,reset,save'
+
+    # Histogram
     bin_heights, bin_edges = np.histogram(df['data'], normed=True, bins='auto')
     hist_df = pd.DataFrame({'bin_heights': bin_heights})
     hist_df['bin_mids'] = pd.Series(bin_edges).rolling(window=2).mean().dropna().reset_index(drop=True)
     hist_df['bin_widths'] = pd.Series(bin_edges).diff().dropna().reset_index(drop=True)
     hist_source = ColumnDataSource(hist_df)
-
-    # %% Define Bokeh plots
-    tools = 'pan,box_zoom,reset,save'
     bin_range = max(bin_edges) - min(bin_edges)
     hist = figure(plot_width=400, plot_height=300, tools=tools, title='Histogram',
                   x_range=[min(bin_edges) - 0.1 * bin_range, max(bin_edges) + 0.1 * bin_range],
@@ -127,6 +124,7 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     cdf.line('x_mle', 'cdf_y', color='green', source=data_fit, line_width=3)
     cdf.line('x_ls', 'cdf_y', color='blue', source=data_fit, line_width=3)
 
+    # Probability plot
     pp = figure(plot_width=400, plot_height=300, tools=tools, title='pp')
     pp.xaxis.axis_label = 'Theoretical Probabilities'
     pp.yaxis.axis_label = 'Empirical Probabilities'
@@ -136,6 +134,7 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     pp.circle('perc_ls', 'perc_emp', color='blue', source=data_source)
     pp.line(x=[0, 1], y=[0, 1], color='gray')
 
+    # Quantile plot
     qq = figure(plot_width=400, plot_height=300, tools=tools, title='qq')
     qq.xaxis.axis_label = 'Theoretical Quantiles'
     qq.yaxis.axis_label = 'Empirical Quantiles'
@@ -168,8 +167,8 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     loc_val_input = TextInput(title='Specify loc value:', placeholder='none', value='')
     loc_val_input.on_change('value', callback)
 
+    # Format app layout
     widgets = widgetbox(metrics_table, menu, loc_val_input, width=400)
-
     grid = gridplot([hist, cdf],
                     [pp, qq],
                     [widgets, None])
