@@ -15,6 +15,7 @@ from bokeh.plotting import figure
 # TODO: is it a problem to return df from calculate_fitted_data? Changing df inside the function changes it outside too.
 # TODO: when using manual input of loc parameter, handle case where dataset is empty because outside of ub/lb
 # TODO: add option to save plot.
+# TODO: allow for selecting data source
 def callback(attr, old, new):
     dist_type = menu.value
     loc = loc_val_input.value

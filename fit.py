@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import scipy.optimize as optimize
@@ -47,14 +46,14 @@ def freeze_dist(dist_str, params):
     return dist(*params)
 
 
-def calc_fit_from_data(df, dist_type, loc, alg):
+def calc_fit_from_data(data, dist_type, loc, alg):
     # Calculate distribution parameters using mle, and calculate corresponding percentiles and quantiles
 
     if alg not in ['mle', 'ls']:
         print('Invalid algorithm parameter \'alg\' submitted to calc_fit_from_data()')  #TODO: make into try/catch
 
     if loc == '':
-        params_mle = getattr(stats, dist_type).fit(df)
+        params_mle = getattr(stats, dist_type).fit(data)
         fixed_loc = False
     else:
         fixed_loc = True
@@ -68,7 +67,7 @@ def calc_fit_from_data(df, dist_type, loc, alg):
         # Remove data points outside of the lower/upper bounds of dist_type, a requirement for scipy's fit method.
         general_params = n_shapes*[1] + [float(loc), 1]
         lb, ub = general_dist(*general_params).ppf(0), general_dist(*general_params).ppf(1)
-        data_subset = df[(df > lb) & (df < ub)]
+        data_subset = data[(data > lb) & (data < ub)]
 
         # Use scipy's fit method to get params_mle
         params_mle = getattr(stats, dist_type).fit(data_subset, floc=float(loc))
@@ -79,12 +78,12 @@ def calc_fit_from_data(df, dist_type, loc, alg):
         return dist_mle
 
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
-    perc_emp = perc_emp_filliben(np.linspace(1, len(df), len(df)))
+    perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
     if not fixed_loc:
-        ls_results = optimize.least_squares(min_fun, params_mle, args=(df, perc_emp, dist_type, loc), method='lm')
+        ls_results = optimize.least_squares(min_fun, params_mle, args=(data, perc_emp, dist_type, loc), method='lm')
     else:
         params_no_loc = [x for x in params_mle if params_mle.index(x) != (len(params_mle) - 2)]
-        ls_results = optimize.least_squares(min_fun, params_no_loc, args=(df, perc_emp, dist_type, loc), method='lm')
+        ls_results = optimize.least_squares(min_fun, params_no_loc, args=(data, perc_emp, dist_type, loc), method='lm')
 
     if not fixed_loc:
         params_ls = ls_results.x
