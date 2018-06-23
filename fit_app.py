@@ -3,7 +3,6 @@ import pathlib
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
-import scipy.optimize as optimize
 import fit
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, widgetbox, gridplot

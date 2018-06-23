@@ -5,7 +5,6 @@ import scipy.optimize as optimize
 
 def perc_emp_filliben(indices):
     n_values = len(indices)
-    # perc_emp = ((indices + 1) - 0.3175) / (n_values + 0.365)
     perc_emp = ((indices) - 0.3175) / (n_values + 0.365)
     perc_emp[-1] = 0.5 ** (1 / n_values)
     perc_emp[0] = 1 - perc_emp[-1]
@@ -45,7 +44,7 @@ def freeze_dist(dist_str, params):
     return dist(*params)
 
 
-def calc_fit_from_data(data, dist_type, loc, alg):
+def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
     # Calculate distribution parameters using mle, and calculate corresponding percentiles and quantiles
 
     if alg not in ['mle', 'ls']:
@@ -78,6 +77,7 @@ def calc_fit_from_data(data, dist_type, loc, alg):
 
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
+    data = np.sort(data)
     if not fixed_loc:
         ls_results = optimize.least_squares(min_fun, params_mle, args=(data, perc_emp, dist_type, loc), method='lm')
     else:
