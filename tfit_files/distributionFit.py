@@ -7,7 +7,7 @@ from scipy.optimize import minimize
 # import matplotlib.pyplot as plt
 # plt.style.use('CFER_plotStyle') # place file CFER_plotStyle.mplstyle in the same directory
 
-import commonTools as common
+from tfit_files import commonTools as common
 
 """
 A generic Distribution class to handle a consistent set of calls for various typically used distributions
