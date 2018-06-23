@@ -23,9 +23,8 @@ def callback(attr, old, new):
     else:
         fixed_loc = True
 
-    # _, dist_mle, dist_ls = fit.calc_fit_from_data(df, dist_type, loc)
-    _, dist_mle = fit.calc_fit_from_data(df, dist_type, loc, 'mle')
-    _, dist_ls = fit.calc_fit_from_data(df, dist_type, loc, 'ls')
+    dist_mle = fit.calc_fit_from_data(data_source.data['data'], dist_type, loc, 'mle')
+    dist_ls = fit.calc_fit_from_data(data_source.data['data'], dist_type, loc, 'ls')
 
     data_fit.data['x_mle'] = dist_mle.ppf(data_fit.data['cdf_y'])
     data_fit.data['pdf_mle'] = dist_mle.pdf(data_fit.data['x_mle'])
@@ -69,11 +68,11 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
 
     # Calculate distribution parameters for default (Normal) distribution.
     dist_type = 'norm'
-    _, dist_mle = fit.calc_fit_from_data(df, dist_type, '', 'mle')
+    dist_mle = fit.calc_fit_from_data(df['data'], dist_type, '', 'mle')
     df['perc_mle'] = dist_mle.cdf(df['data'])
     df['quant_mle'] = dist_mle.ppf(df['perc_emp'])
 
-    _, dist_ls = fit.calc_fit_from_data(df, dist_type, '', 'ls')
+    dist_ls = fit.calc_fit_from_data(df['data'], dist_type, '', 'ls')
     df['perc_ls'] = dist_ls.cdf(df['data'])
     df['quant_ls'] = dist_ls.ppf(df['perc_emp'])
 
