@@ -36,17 +36,17 @@ def pod(reported_depth, det_threshold, pod_threshold):
 
 def gen_unrep_sample(reported_size, rel_freq):
     """
-        return a randomly generated sample of a representative population of non-detected defects
+        return a randomly generated sample of a representative population of undetected defects
     """
-    non_reported_sample = sample_w_replacement(reported_size, rel_freq)
+    unreported_sample = sample_w_replacement(reported_size, rel_freq)
 
-    return non_reported_sample
+    return unreported_sample
 
 
-def non_reported_params(reported_depth, det_threshold, pod_threshold, pofc, poi, use_const_pod=False):
+def unreported_params(reported_depth, det_threshold, pod_threshold, pofc, poi, use_const_pod=False):
     """
-        get the likelihood of non-reported defects for each reported defect; the relative frequency and the total
-        expected number of non reported defects
+        get the likelihood of unreported defects for each reported defect; the relative frequency and the total
+        expected number of unreported defects
     """
     if use_const_pod:
         reported_pod = np.array([pod_threshold] * len(reported_depth))
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     pod_threshold = 0.9
     pofc = 0.
     poi = 1.
-    n_unreported, likelihood, rel_freq = non_reported_params(df['data'], det_threshold, pod_threshold, pofc, poi)
+    n_unreported, likelihood, rel_freq = unreported_params(df['data'], det_threshold, pod_threshold, pofc, poi)
 
     unrep_sample = gen_unrep_sample(df['data'], rel_freq)
 
