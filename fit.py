@@ -3,7 +3,6 @@ import scipy.stats as stats
 import scipy.optimize as optimize
 
 
-# TODO: split up calculate fitted so it calculates ls or mle, not both.
 def perc_emp_filliben(indices):
     n_values = len(indices)
     # perc_emp = ((indices + 1) - 0.3175) / (n_values + 0.365)
