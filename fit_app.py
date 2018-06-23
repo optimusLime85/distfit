@@ -23,7 +23,9 @@ def callback(attr, old, new):
     else:
         fixed_loc = True
 
-    _, dist_mle, dist_ls = fit.calculate_fitted_data(df, dist_type, loc)
+    # _, dist_mle, dist_ls = fit.calc_fit_from_data(df, dist_type, loc)
+    _, dist_mle = fit.calc_fit_from_data(df, dist_type, loc, 'mle')
+    _, dist_ls = fit.calc_fit_from_data(df, dist_type, loc, 'ls')
 
     data_fit.data['x_mle'] = dist_mle.ppf(data_fit.data['cdf_y'])
     data_fit.data['pdf_mle'] = dist_mle.pdf(data_fit.data['x_mle'])
@@ -67,7 +69,13 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
 
     # Calculate distribution parameters for default (Normal) distribution.
     dist_type = 'norm'
-    df, dist_mle, dist_ls = fit.calculate_fitted_data(df, dist_type, '')
+    _, dist_mle = fit.calc_fit_from_data(df, dist_type, '', 'mle')
+    df['perc_mle'] = dist_mle.cdf(df['data'])
+    df['quant_mle'] = dist_mle.ppf(df['perc_emp'])
+
+    _, dist_ls = fit.calc_fit_from_data(df, dist_type, '', 'ls')
+    df['perc_ls'] = dist_ls.cdf(df['data'])
+    df['quant_ls'] = dist_ls.ppf(df['perc_emp'])
 
     df_fit = pd.DataFrame(data=np.linspace(0.000001, 0.999999, 1000), columns=['cdf_y'])
 

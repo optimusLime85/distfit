@@ -4,6 +4,7 @@ import scipy.stats as stats
 import scipy.optimize as optimize
 
 
+# TODO: split up calculate fitted so it calculates ls or mle, not both.
 def perc_emp_filliben(indices):
     n_values = len(indices)
     perc_emp = ((indices + 1) - 0.3175) / (n_values + 0.365)
@@ -46,12 +47,18 @@ def freeze_dist(dist_str, params):
     return dist(*params)
 
 
-def calculate_fitted_data(df, dist_type, loc):
+def calc_fit_from_data(df, dist_type, loc, alg):
     # Calculate distribution parameters using mle, and calculate corresponding percentiles and quantiles
+
+    if alg not in ['mle', 'ls']:
+        print('Invalid algorithm parameter \'alg\' submitted to calc_fit_from_data()')  #TODO: make into try/catch
+
     if loc == '':
         params_mle = getattr(stats, dist_type).fit(df['data'])
+        fixed_loc = False
     else:
         # Remove data points outside of the lower/upper bounds of dist_type, a requirement for scipy's fit method.
+        fixed_loc = True
         general_dist = getattr(stats, dist_type)
         shapes = general_dist.shapes
         if shapes is None:
@@ -64,19 +71,21 @@ def calculate_fitted_data(df, dist_type, loc):
 
         # Use scipy's fit method to get params_mle
         params_mle = getattr(stats, dist_type).fit(data_subset, floc=float(loc))
-
     dist_mle = freeze_dist(dist_type, params_mle)
     df['perc_mle'] = dist_mle.cdf(df['data'])
     df['quant_mle'] = dist_mle.ppf(df['perc_emp'])
 
+    if alg == 'mle':
+        return df[['perc_mle', 'quant_mle']], dist_mle
+
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
-    if loc == '':
+    if not fixed_loc:
         ls_results = optimize.least_squares(min_fun, params_mle, args=(df['data'], dist_type, loc), method='lm')
     else:
         params_no_loc = [x for x in params_mle if params_mle.index(x) != (len(params_mle) - 2)]
         ls_results = optimize.least_squares(min_fun, params_no_loc, args=(df['data'], dist_type, loc), method='lm')
 
-    if loc == '':
+    if not fixed_loc:
         params_ls = ls_results.x
     else:
         params_ls = ls_results.x
@@ -87,4 +96,4 @@ def calculate_fitted_data(df, dist_type, loc):
     df['perc_ls'] = dist_ls.cdf(df['data'])
     df['quant_ls'] = dist_ls.ppf(df['perc_emp'])
 
-    return df, dist_mle, dist_ls
+    return df[['perc_ls', 'quant_ls']], dist_ls
