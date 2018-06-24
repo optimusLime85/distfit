@@ -15,8 +15,36 @@ from bokeh.plotting import figure
 # TODO: when using manual input of loc parameter, handle case where dataset is empty because outside of ub/lb
 # TODO: add option to save plot.
 # TODO: allow for selecting data source
+def load_data(data_source):
+    df = pd.read_csv(data_source).dropna()
+    df.columns = ['post', 'data']
+
+    # Calculate empirical percentiles for ordered (ranked) data.
+    df = df.sort_values(by='data').reset_index(drop=True)
+    df['perc_emp'] = fit.perc_emp_filliben(df.index.get_values())
+
+    # Calculate distribution parameters for default (Normal) distribution.
+    dist_type = dist_menu.value
+    loc = loc_val_input.value
+    dist_mle = fit.calc_fit_from_data(df['data'], dist_type, loc, 'mle')
+    df['perc_mle'] = dist_mle.cdf(df['data'])
+    df['quant_mle'] = dist_mle.ppf(df['perc_emp'])
+
+    dist_ls = fit.calc_fit_from_data(df['data'], dist_type, loc, 'ls')
+    df['perc_ls'] = dist_ls.cdf(df['data'])
+    df['quant_ls'] = dist_ls.ppf(df['perc_emp'])
+
+    return df
+
+
+def on_change_datasource(attr, old, new):
+    new_df = load_data(data_source_menu.value)
+    data_source = ColumnDataSource(df)
+    pass
+
+
 def callback(attr, old, new):
-    dist_type = menu.value
+    dist_type = dist_menu.value
     loc = loc_val_input.value
     if loc == '':
         fixed_loc = False
@@ -60,10 +88,10 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     data_dir = fit_dir / pathlib.Path('data')
     df = pd.read_csv(data_dir / pathlib.Path('data.csv')).dropna()
     df.columns = ['post', 'data']
-    df = df.sort_values(by='data').reset_index(drop=True)
-    n = df['data'].count()
+    # n = df['data'].count()
 
     # Calculate empirical percentiles for ordered (ranked) data.
+    df = df.sort_values(by='data').reset_index(drop=True)
     df['perc_emp'] = fit.perc_emp_filliben(df.index.get_values())
 
     # Calculate distribution parameters for default (Normal) distribution.
@@ -76,16 +104,15 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     df['perc_ls'] = dist_ls.cdf(df['data'])
     df['quant_ls'] = dist_ls.ppf(df['perc_emp'])
 
-    df_fit = pd.DataFrame(data=np.linspace(0.000001, 0.999999, 1000), columns=['cdf_y'])
+    data_source = ColumnDataSource(df)
 
+    df_fit = pd.DataFrame(data=np.linspace(0.000001, 0.999999, 1000), columns=['cdf_y'])
     df_fit['x_mle'] = dist_mle.ppf(df_fit['cdf_y'])
     df_fit['pdf_mle'] = dist_mle.pdf(df_fit['x_mle'])
-
     df_fit['x_ls'] = dist_ls.ppf(df_fit['cdf_y'])
     df_fit['pdf_ls'] = dist_ls.pdf(df_fit['x_ls'])
-
-    data_source = ColumnDataSource(df)
     data_fit = ColumnDataSource(df_fit)
+
     metrics_source = ColumnDataSource(
         dict(
             method=('Source Data', 'Maximum Likelihood', 'Least Squares (Quantiles)'),
@@ -151,10 +178,15 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     qq.circle('quant_ls', 'data', color='blue', source=data_source)
     qq.line(x=(0, max(df['data'])), y=(0, max(df['data'])), color='gray')
 
-    # Dropdown widget
+    # Distribution dropdown widget
     options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
-    menu = Select(options=options, value='norm', title='Distribution')
-    menu.on_change('value', callback)
+    dist_menu = Select(options=options, value='norm', title='Distribution')
+    dist_menu.on_change('value', callback)
+
+    # Data source dropdown widget
+    files = [x for x in os.listdir('data') if x.split('.')[-1] == 'csv']
+    data_source_menu = Select(options=files, value='data.csv', title='Source from \'data\' directory')
+    # data_source_menu.on_change('value', callback)
 
     # Table widget
     num_format = NumberFormatter()
@@ -175,7 +207,7 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     loc_val_input.on_change('value', callback)
 
     # Format app layout
-    widgets = widgetbox(metrics_table, menu, loc_val_input, width=400)
+    widgets = widgetbox(metrics_table, dist_menu, data_source_menu, width=400)
     grid = gridplot([hist, cdf],
                     [pp, qq],
                     [widgets, None])
