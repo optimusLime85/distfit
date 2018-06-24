@@ -82,7 +82,7 @@ def on_change_datasource(attr, old, new):
     qq_line_source.data['y'] = (0, max(df['data']))
 
 
-def on_dist_change(attr, old, new):  # TODO: rename
+def on_dist_change(attr, old, new):
     dist_type = dist_menu.value
     loc = loc_val_input.value
     if loc == '':
