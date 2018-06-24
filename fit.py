@@ -77,7 +77,7 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
-    data = np.sort(data)
+    data = np.sort(data)  # Data must be sorted to correspond to correct Filliben percentiles.
     if not fixed_loc:
         ls_results = optimize.least_squares(min_fun, params_mle, args=(data, perc_emp, dist_type, loc), method='lm')
     else:
