@@ -221,12 +221,12 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
 
     # Distribution dropdown widget
     options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
-    dist_menu = Select(options=options, value='norm', title='Distribution')
+    dist_menu = Select(options=options, value='norm', title='Distribution:')
     dist_menu.on_change('value', on_dist_change)
 
     # Data source dropdown widget
     files = [x for x in os.listdir('data') if x.split('.')[-1] == 'csv']
-    data_source_menu = Select(options=files, value='data.csv', title='Source from \'data\' directory')
+    data_source_menu = Select(options=files, value='data.csv', title='Source from \'data\' directory:')
     data_source_menu.on_change('value', on_change_datasource)
 
     # Table widget
