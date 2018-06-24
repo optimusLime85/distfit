@@ -5,7 +5,7 @@ import numpy as np
 import scipy.stats as stats
 import fit
 from bokeh.io import curdoc
-from bokeh.layouts import column, row, widgetbox, gridplot
+from bokeh.layouts import widgetbox, gridplot
 from bokeh.models import ColumnDataSource, Select, DataTable, TableColumn, NumberFormatter, TextInput
 from bokeh.plotting import figure
 
@@ -16,7 +16,8 @@ from bokeh.plotting import figure
 # TODO: add option to save plot.
 # TODO: allow for selecting data source
 def load_data(data_source):
-    df = pd.read_csv(data_source).dropna()
+    data_path = pathlib.Path(os.getcwd()) / pathlib.Path('data\\' + data_source)
+    df = pd.read_csv(data_path).dropna()
     df.columns = ['post', 'data']
 
     # Calculate empirical percentiles for ordered (ranked) data.
@@ -27,23 +28,61 @@ def load_data(data_source):
     dist_type = dist_menu.value
     loc = loc_val_input.value
     dist_mle = fit.calc_fit_from_data(df['data'], dist_type, loc, 'mle')
-    df['perc_mle'] = dist_mle.cdf(df['data'])
-    df['quant_mle'] = dist_mle.ppf(df['perc_emp'])
-
     dist_ls = fit.calc_fit_from_data(df['data'], dist_type, loc, 'ls')
-    df['perc_ls'] = dist_ls.cdf(df['data'])
-    df['quant_ls'] = dist_ls.ppf(df['perc_emp'])
 
-    return df
+    return df, dist_mle, dist_ls
 
 
 def on_change_datasource(attr, old, new):
-    new_df = load_data(data_source_menu.value)
-    data_source = ColumnDataSource(df)
-    pass
+    df, dist_mle, dist_ls = load_data(data_source_menu.value)
+    data_source.data['data'] = df['data']
+    data_source.data['perc_emp'] = df['perc_emp']
+    data_source.data['perc_mle'] = dist_mle.cdf(df['data'])
+    data_source.data['quant_mle'] = dist_mle.ppf(df['perc_emp'])
+    data_source.data['perc_ls'] = dist_ls.cdf(df['data'])
+    data_source.data['quant_ls'] = dist_ls.ppf(df['perc_emp'])
+
+    data_fit.data['x_mle'] = dist_mle.ppf(data_fit.data['cdf_y'])
+    data_fit.data['pdf_mle'] = dist_mle.pdf(data_fit.data['x_mle'])
+    data_source.data['perc_mle'] = dist_mle.cdf(data_source.data['data'])
+    data_source.data['quant_mle'] = dist_mle.ppf(data_source.data['perc_emp'])
+
+    data_fit.data['x_ls'] = dist_ls.ppf(data_fit.data['cdf_y'])
+    data_fit.data['pdf_ls'] = dist_ls.pdf(data_fit.data['x_ls'])
+    data_source.data['perc_ls'] = dist_ls.cdf(data_source.data['data'])
+    data_source.data['quant_ls'] = dist_ls.ppf(data_source.data['perc_emp'])
+
+    metrics_source.data['mean'] = (df['data'].mean(), dist_mle.mean(), dist_ls.mean())
+    metrics_source.data['sd'] = (df['data'].std(), dist_mle.std(), dist_ls.std())
+    metrics_source.data['scale'] = (np.nan, dist_mle.args[-1], dist_ls.args[-1])
+    metrics_source.data['loc'] = (np.nan, dist_mle.args[-2], dist_ls.args[-2])
+    fixed_loc = loc_val_input.value != ''
+    k = fit.calc_k(getattr(stats, dist_type), fixed_loc)
+    if fixed_loc:
+        mle_likelihoods = dist_mle.pdf(data_source.data['data'][data_source.data['data'] > float(loc_val_input.value)])
+        ls_likelihoods = dist_ls.pdf(data_source.data['data'][data_source.data['data'] > float(loc_val_input.value)])
+    else:
+        mle_likelihoods = dist_mle.pdf(data_source.data['data'])
+        ls_likelihoods = dist_ls.pdf(data_source.data['data'])
+    metrics_source.data['aic'] = (np.nan, fit.calc_aic(mle_likelihoods, k), fit.calc_aic(ls_likelihoods, k))
+    if dist_mle.args[:-2]:
+        metrics_source.data['shape'] = (np.nan, dist_mle.args[:-2], dist_ls.args[:-2])
+    else:
+        metrics_source.data['shape'] = (np.nan, np.nan, np.nan)
+
+    bin_heights, bin_edges = np.histogram(df['data'], normed=True, bins='auto')
+    hist.x_range.start = min(bin_edges) - 0.1 * bin_range
+    hist.x_range.end = max(bin_edges) + 0.1 * bin_range
+    hist.y_range.end = max(bin_heights) * 1.1
+    hist_source.data['bin_heights'] = bin_heights
+    hist_source.data['bin_mids'] = pd.Series(bin_edges).rolling(window=2).mean().dropna().reset_index(drop=True)
+    hist_source.data['bin_widths'] = pd.Series(bin_edges).diff().dropna().reset_index(drop=True)
+
+    qq_line_source.data['x'] = (0, max(df['data']))
+    qq_line_source.data['y'] = (0, max(df['data']))
 
 
-def callback(attr, old, new):
+def on_dist_change(attr, old, new):  # TODO: rename
     dist_type = dist_menu.value
     loc = loc_val_input.value
     if loc == '':
@@ -176,17 +215,19 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     qq.yaxis.axis_label_text_font_style = 'bold'
     qq.circle('quant_mle', 'data', color='green', source=data_source)
     qq.circle('quant_ls', 'data', color='blue', source=data_source)
-    qq.line(x=(0, max(df['data'])), y=(0, max(df['data'])), color='gray')
+    qq_line_source = ColumnDataSource(dict(x=(0, max(df['data'])), y=(0, max(df['data']))))
+    qq.line(x='x', y='y', color='gray', source=qq_line_source)
+    # qq.line(x=(0, max(df['data'])), y=(0, max(df['data'])), color='gray')
 
     # Distribution dropdown widget
     options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
     dist_menu = Select(options=options, value='norm', title='Distribution')
-    dist_menu.on_change('value', callback)
+    dist_menu.on_change('value', on_dist_change)
 
     # Data source dropdown widget
     files = [x for x in os.listdir('data') if x.split('.')[-1] == 'csv']
     data_source_menu = Select(options=files, value='data.csv', title='Source from \'data\' directory')
-    # data_source_menu.on_change('value', callback)
+    data_source_menu.on_change('value', on_change_datasource)
 
     # Table widget
     num_format = NumberFormatter()
@@ -204,10 +245,10 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
 
     # Text input widget
     loc_val_input = TextInput(title='Specify loc value:', placeholder='none', value='')
-    loc_val_input.on_change('value', callback)
+    loc_val_input.on_change('value', on_dist_change)
 
     # Format app layout
-    widgets = widgetbox(metrics_table, dist_menu, data_source_menu, width=400)
+    widgets = widgetbox(metrics_table, dist_menu, data_source_menu, loc_val_input, width=400)
     grid = gridplot([hist, cdf],
                     [pp, qq],
                     [widgets, None])
