@@ -18,7 +18,8 @@ from bokeh.plotting import figure
 def load_data(data_source):
     data_path = pathlib.Path(os.getcwd()) / pathlib.Path('data\\' + data_source)
     df = pd.read_csv(data_path).dropna()
-    df.columns = ['post', 'data']
+    df.columns = ['data']
+    # df.columns = ['post', 'data']
 
     # Calculate empirical percentiles for ordered (ranked) data.
     df = df.sort_values(by='data').reset_index(drop=True)
@@ -126,8 +127,8 @@ if ('bk_script' in __name__) or (__name__ == '__main__'):
     fit_dir = pathlib.Path(os.getcwd())
     data_dir = fit_dir / pathlib.Path('data')
     df = pd.read_csv(data_dir / pathlib.Path('data.csv')).dropna()
-    df.columns = ['post', 'data']
-    # n = df['data'].count()
+    # df.columns = ['post', 'data']
+    df.columns = ['data']
 
     # Calculate empirical percentiles for ordered (ranked) data.
     df = df.sort_values(by='data').reset_index(drop=True)
