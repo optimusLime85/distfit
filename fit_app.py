@@ -19,7 +19,6 @@ def load_data(data_source):
     data_path = pathlib.Path(os.getcwd()) / pathlib.Path('data\\' + data_source)
     df = pd.read_csv(data_path).dropna()
     df.columns = ['data']
-    # df.columns = ['post', 'data']
 
     # Calculate empirical percentiles for ordered (ranked) data.
     df = df.sort_values(by='data').reset_index(drop=True)
@@ -53,8 +52,8 @@ def on_change_datasource(attr, old, new):
     data_source.data['perc_ls'] = dist_ls.cdf(data_source.data['data'])
     data_source.data['quant_ls'] = dist_ls.ppf(data_source.data['perc_emp'])
 
-    metrics_source.data['mean'] = (df['data'].mean(), dist_mle.mean(), dist_ls.mean())
-    metrics_source.data['sd'] = (df['data'].std(), dist_mle.std(), dist_ls.std())
+    metrics_source.data['mean'] = (data_source.data['data'].mean(), dist_mle.mean(), dist_ls.mean())
+    metrics_source.data['sd'] = (data_source.data['data'].std(), dist_mle.std(), dist_ls.std())
     metrics_source.data['scale'] = (np.nan, dist_mle.args[-1], dist_ls.args[-1])
     metrics_source.data['loc'] = (np.nan, dist_mle.args[-2], dist_ls.args[-2])
     fixed_loc = loc_val_input.value != ''
@@ -104,8 +103,8 @@ def on_dist_change(attr, old, new):
     data_source.data['perc_ls'] = dist_ls.cdf(data_source.data['data'])
     data_source.data['quant_ls'] = dist_ls.ppf(data_source.data['perc_emp'])
 
-    metrics_source.data['mean'] = (df['data'].mean(), dist_mle.mean(), dist_ls.mean())
-    metrics_source.data['sd'] = (df['data'].std(), dist_mle.std(), dist_ls.std())
+    metrics_source.data['mean'] = (data_source.data['data'].mean(), dist_mle.mean(), dist_ls.mean())
+    metrics_source.data['sd'] = (data_source.data['data'].std(), dist_mle.std(), dist_ls.std())
     metrics_source.data['scale'] = (np.nan, dist_mle.args[-1], dist_ls.args[-1])
     metrics_source.data['loc'] = (np.nan, dist_mle.args[-2], dist_ls.args[-2])
     k = fit.calc_k(getattr(stats, dist_type), fixed_loc)
