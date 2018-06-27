@@ -63,7 +63,8 @@ if __name__ == '__main__':
     fit_dir = pathlib.Path(os.getcwd())
     data_dir = fit_dir / pathlib.Path('data')
     df = pd.read_csv(data_dir / pathlib.Path('data.csv')).dropna()
-    df.columns = ['post', 'data']
+    df.columns = ['data']
+    # df.columns = ['post', 'data']
     test_data = df['data']
 
     det_threshold = 1.
@@ -83,15 +84,16 @@ if __name__ == '__main__':
 
     n_bins = max(int(np.rint(np.sqrt(len(df['data'])))), 10)
     bins = np.linspace(min(df['data']), max(df['data']), n_bins + 1)
-    data_heights, _, _ = plt.hist(df['data'], color='gray', alpha=0.3, bins=bins, density=True, label='Reported')
-    unrep_heights, _, _ = plt.hist(unrep_sample, color='green', alpha=0.3, bins=bins, density=True, label='Unreported')
-    ax.set_ylim([0, 1.1 * max(max(data_heights), max(unrep_heights))])
+    unrep_heights, _, _ = plt.hist([df['data'], unrep_sample], color=['gray', 'green'], bins=bins, density=True,
+                                   label=['Reported','Unreported'], alpha=0.7)
+    ax.set_ylim([0, 1.1 * max(unrep_heights[0].max(), unrep_heights[1].max())])
 
     x_line = np.linspace(df['data'].min() * .9, df['data'].max() * 1.1, 500)
-    plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit')
+    plt.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3,3])
+    plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3,3])
 
     handles, labels = plt.gca().get_legend_handles_labels()
-    order = [1, 2, 0]
+    order = [2, 0, 3, 1]
     plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
 
     plt.show()
