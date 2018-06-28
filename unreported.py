@@ -64,7 +64,6 @@ if __name__ == '__main__':
     data_dir = fit_dir / pathlib.Path('data')
     df = pd.read_csv(data_dir / pathlib.Path('data.csv')).dropna()
     df.columns = ['data']
-    # df.columns = ['post', 'data']
     test_data = df['data']
 
     det_threshold = 1.
