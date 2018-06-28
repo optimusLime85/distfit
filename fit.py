@@ -99,14 +99,13 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
     data = np.array(np.sort(data))
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
-    x_fit = dist.ppf(np.linspace(1e-6, (1 - 1e-6), 500))
+    x_fit = dist.ppf(np.linspace(1e-3, (1 - 1e-3), 500))
 
     fig, ((hist, cdf), (pp, qq)) = plt.subplots(2,2)
     fig.suptitle(title)
 
     hist.plot(x_fit, dist.pdf(x_fit), color='green', linewidth=2.)
-    n_bins = max(int(np.rint(np.sqrt(len(data)))), 10)
-    bins = np.linspace(min(data), max(data), n_bins + 1)
+    hist_heights, bins = np.histogram(data)
     unrep_heights, _, _ = hist.hist(data, color='gray', bins=bins, density=True, label='Data', alpha=0.7)
     hist.set_ylim([0, 1.1 * unrep_heights.max()])
     hist.set_xlabel('Data')
