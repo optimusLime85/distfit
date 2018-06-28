@@ -81,13 +81,13 @@ if __name__ == '__main__':
     fig = plt.Figure()
     ax = plt.gca()
 
-    n_bins = max(int(np.rint(np.sqrt(len(df['data'])))), 10)
-    bins = np.linspace(min(df['data']), max(df['data']), n_bins + 1)
-    unrep_heights, _, _ = plt.hist([df['data'], unrep_sample], color=['gray', 'green'], bins=bins, density=True,
-                                   label=['Reported','Unreported'], alpha=0.7)
-    ax.set_ylim([0, 1.1 * max(unrep_heights[0].max(), unrep_heights[1].max())])
+    heights_data, bins_data = np.histogram(df['data'], normed=True)
+    heights_unrep, bins_unrep = np.histogram(unrep_sample, normed=True)
+    plt.hist([df['data'], unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
+             label=['Reported','Unreported'], alpha=0.7)
+    ax.set_ylim([0, 1.1 * max(heights_data.max(), heights_unrep.max())])
 
-    x_line = np.linspace(df['data'].min() * .9, df['data'].max() * 1.1, 500)
+    x_line = np.linspace(df['data'].min() * .95, df['data'].max() * 1.05, 500)
     plt.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3,3])
     plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3,3])
 
