@@ -123,8 +123,7 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
     pp.set_ylabel('Theoretical Probability')
 
     qq.scatter(dist.ppf(perc_emp), data, color='gray', s=1., alpha=0.7)
-    qq_max = max(max(dist.ppf(perc_emp)), max(data))
-    qq.plot((0,qq_max), (0,qq_max), color='black', linewidth=1.)
+    qq.plot((min(data),max(data)), (min(data),max(data)), color='black', linewidth=1.)
     qq.set_xlabel('Theoretical Quantile')
     qq.set_ylabel('Empirical Quantile')
 
