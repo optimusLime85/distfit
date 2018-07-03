@@ -95,7 +95,7 @@ if __name__ == '__main__':
     order = [2, 0, 3, 1]
     plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
 
-    fit.make_fourplot(unrep_sample, unrep_dist, title='Unreported dist')
-    fit.make_fourplot(df['data'], rep_dist, title='Reported dist')
+    _ = fit.make_fourplot(unrep_sample, unrep_dist, title='Unreported dist')
+    _ = fit.make_fourplot(df['data'], rep_dist, title='Reported dist')
 
     plt.show()
