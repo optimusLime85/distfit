@@ -102,8 +102,8 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
     x_fit = dist.ppf(np.linspace(1e-3, (1 - 1e-3), 500))
 
-    fig, ((hist, cdf), (pp, qq)) = plt.subplots(2,2)
-    fig.suptitle(title)
+    fourplot, ((hist, cdf), (pp, qq)) = plt.subplots(2, 2)
+    fourplot.suptitle(title)
 
     hist.plot(x_fit, dist.pdf(x_fit), color='green', linewidth=2.)
     hist_heights, bins = np.histogram(data)
@@ -131,3 +131,5 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
 
     if fig_save_path:
         plt.savefig(fig_save_path + '\\' + title + '.png')
+
+    return fourplot
