@@ -59,6 +59,35 @@ def unreported_params(reported_depth, det_threshold, pod_threshold, pofc, poi, u
     return [n_unreported, likelihood, rel_freq]
 
 
+def rep_unrep_plot(rep_sample, unrep_sample, rep_dist, unrep_dist, title='Title goes here', fig_save_path=None):
+    """
+        plots histograms of the reported and unreported data along with fitted distributions to each.
+    """
+    fig = plt.Figure()
+    ax = plt.gca()
+
+    heights_data, bins_data = np.histogram(rep_sample, normed=True)
+    heights_unrep, bins_unrep = np.histogram(unrep_sample, normed=True)
+    plt.hist([rep_sample, unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
+             label=['Reported', 'Unreported'], alpha=0.7)
+    ax.set_ylim([0, 1.1 * max(heights_data.max(), heights_unrep.max())])
+
+    x_line = np.linspace(min(rep_sample) * .95, max(rep_sample) * 1.05, 500)
+    plt.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3, 3])
+    plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3, 3])
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+    order = [2, 0, 3, 1]
+    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+
+    plt.title(title)
+
+    if fig_save_path:
+        plt.savefig(fig_save_path + '\\' + title + '.png')
+
+    return fig
+
+
 if __name__ == '__main__':
     fit_dir = pathlib.Path(os.getcwd())
     data_dir = fit_dir / pathlib.Path('data')
@@ -77,25 +106,9 @@ if __name__ == '__main__':
     unrep_dist = fit.calc_fit_from_data(unrep_sample, 'lognorm')
     rep_dist = fit.calc_fit_from_data(df['data'], 'lognorm')
 
-    sns.set()
-    fig = plt.Figure()
-    ax = plt.gca()
-
-    heights_data, bins_data = np.histogram(df['data'], normed=True)
-    heights_unrep, bins_unrep = np.histogram(unrep_sample, normed=True)
-    plt.hist([df['data'], unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
-             label=['Reported','Unreported'], alpha=0.7)
-    ax.set_ylim([0, 1.1 * max(heights_data.max(), heights_unrep.max())])
-
-    x_line = np.linspace(df['data'].min() * .95, df['data'].max() * 1.05, 500)
-    plt.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3,3])
-    plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3,3])
-
-    handles, labels = plt.gca().get_legend_handles_labels()
-    order = [2, 0, 3, 1]
-    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
-
+    _ = rep_unrep_plot(df['data'], unrep_sample, rep_dist, unrep_dist)
     _ = fit.make_fourplot(unrep_sample, unrep_dist, title='Unreported dist')
     _ = fit.make_fourplot(df['data'], rep_dist, title='Reported dist')
 
+    sns.set()
     plt.show()
