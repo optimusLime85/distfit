@@ -38,6 +38,8 @@ def gen_unrep_sample(reported_size, rel_freq):
     """
         return a randomly generated sample of a representative population of undetected defects
     """
+    reported_size = np.array(reported_size)
+    rel_freq = np.array(rel_freq)
     unreported_sample = sample_w_replacement(reported_size, rel_freq)
 
     return unreported_sample
@@ -63,27 +65,28 @@ def rep_unrep_plot(rep_sample, unrep_sample, rep_dist, unrep_dist, title='Title 
     """
         plots histograms of the reported and unreported data along with fitted distributions to each.
     """
-    fig = plt.Figure()
-    ax = plt.gca()
+    fig, ax = plt.subplots(1, 1)
 
     heights_data, bins_data = np.histogram(rep_sample, normed=True)
     heights_unrep, bins_unrep = np.histogram(unrep_sample, normed=True)
-    plt.hist([rep_sample, unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
+    ax.hist([rep_sample, unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
              label=['Reported', 'Unreported'], alpha=0.7)
     ax.set_ylim([0, 1.1 * max(heights_data.max(), heights_unrep.max())])
 
     x_line = np.linspace(min(rep_sample) * .95, max(rep_sample) * 1.05, 500)
-    plt.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3, 3])
-    plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3, 3])
+    ax.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3, 3])
+    ax.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3, 3])
 
-    handles, labels = plt.gca().get_legend_handles_labels()
+    handles, labels = ax.get_legend_handles_labels()
     order = [2, 0, 3, 1]
-    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+    fig.legend([handles[idx] for idx in order], [labels[idx] for idx in order], loc='upper right',
+               bbox_to_anchor=(0.9, 0.9))
 
-    plt.title(title)
+    fig.suptitle(title)
+    fig.tight_layout(rect=[0,0,1,0.95])
 
     if fig_save_path:
-        plt.savefig(fig_save_path + '\\' + title + '.png')
+        fig.savefig(pl.Path(fig_save_path) / pl.Path(title + '.png'))
 
     return fig
 

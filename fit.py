@@ -74,7 +74,9 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
     dist_mle = freeze_dist(dist_type, params_mle)
 
     if alg == 'mle':
-        return dist_mle
+        k = calc_k(dist_mle, loc)
+        aic = calc_aic(dist_mle.pdf(data), k)
+        return dist_mle, aic
 
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
@@ -94,6 +96,8 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 
     dist_ls = freeze_dist(dist_type, params_ls)
 
+    k = calc_k(dist_ls, loc)
+    aic = calc_aic(dist_ls.pdf(data), k)
     return dist_ls
 
 
