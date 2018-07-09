@@ -14,7 +14,7 @@ def perc_emp_filliben(indices):
 
 def calc_k(dist, fixed_loc):
     k = 2  # Count loc and scale parameters
-    if dist.shapes:
+    if dist.dist.shapes:
         k += len(dist.shapes.split(','))  # Add in shape parameters if they exist.
     if fixed_loc:
         k -= 1  # Remove the loc parameter if it is fixed.
@@ -74,7 +74,7 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
     dist_mle = freeze_dist(dist_type, params_mle)
 
     if alg == 'mle':
-        k = calc_k(dist_mle.dist, loc)
+        k = calc_k(dist_mle, loc)
         aic = calc_aic(dist_mle.pdf(data), k)
         return dist_mle, aic
 
@@ -96,7 +96,7 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 
     dist_ls = freeze_dist(dist_type, params_ls)
 
-    k = calc_k(dist_ls.dist, loc)
+    k = calc_k(dist_ls, loc)
     aic = calc_aic(dist_ls.pdf(data), k)
     return dist_ls, aic
 
