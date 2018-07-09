@@ -74,7 +74,7 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
     dist_mle = freeze_dist(dist_type, params_mle)
 
     if alg == 'mle':
-        k = calc_k(dist_mle, loc)
+        k = calc_k(dist_mle.dist, loc)
         aic = calc_aic(dist_mle.pdf(data), k)
         return dist_mle, aic
 
@@ -96,9 +96,9 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 
     dist_ls = freeze_dist(dist_type, params_ls)
 
-    k = calc_k(dist_ls, loc)
+    k = calc_k(dist_ls.dist, loc)
     aic = calc_aic(dist_ls.pdf(data), k)
-    return dist_ls
+    return dist_ls, aic
 
 
 def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
