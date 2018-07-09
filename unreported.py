@@ -12,7 +12,8 @@ def sample_w_replacement(obs, prob, n_sim=10000):
         Draw a set from obs with replacement
         prob is the probabilty that each entry could occur
     """
-    ind = np.linspace(1, len(obs), len(obs), dtype=int) - 1  # all indices of obs (index starts at 0)
+    ind = np.linspace(1, len(obs), len(obs), dtype=int) - 1  # All indices of obs (index starts at 0)
+    np.random.seed(0)   # Fix random seed.
     ind_rand = np.random.choice(ind, size=n_sim, replace=True, p=prob)  # Randomly from ind using probabilities in prob.
     sample = obs[ind_rand]  # retrieve the actual values from obs
 
