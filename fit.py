@@ -14,7 +14,7 @@ def perc_emp_filliben(indices):
 
 def calc_k(dist, fixed_loc):
     k = 2  # Count loc and scale parameters
-    if dist.dist.shapes:
+    if dist.shapes:
         k += len(dist.shapes.split(','))  # Add in shape parameters if they exist.
     if fixed_loc:
         k -= 1  # Remove the loc parameter if it is fixed.
@@ -74,7 +74,7 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
     dist_mle = freeze_dist(dist_type, params_mle)
 
     if alg == 'mle':
-        k = calc_k(dist_mle, loc)
+        k = calc_k(dist_mle.dist, loc)
         aic = calc_aic(dist_mle.pdf(data), k)
         return dist_mle, aic
 
@@ -96,7 +96,7 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 
     dist_ls = freeze_dist(dist_type, params_ls)
 
-    k = calc_k(dist_ls, loc)
+    k = calc_k(dist_ls.dist, loc)
     aic = calc_aic(dist_ls.pdf(data), k)
     return dist_ls, aic
 
@@ -124,7 +124,7 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
     pp.scatter(dist.cdf(data), perc_emp, color='gray', s=1., alpha=0.7)
     pp.plot((0, 1), (0,1), color='black', linewidth=1.)
     pp.set_xlabel('Theoretical Probability')
-    pp.set_ylabel('Theoretical Probability')
+    pp.set_ylabel('Empirical Probability')
 
     qq.scatter(dist.ppf(perc_emp), data, color='gray', s=1., alpha=0.7)
     qq.plot((min(data),max(data)), (min(data),max(data)), color='black', linewidth=1.)
