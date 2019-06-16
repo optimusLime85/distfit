@@ -14,7 +14,7 @@ from bokeh.plotting import figure
 # TODO: when using manual input of loc parameter, handle case where dataset is empty because outside of ub/lb
 # TODO: add option to save plot.
 def load_data(data_source_menu_value, dist_type, loc):
-    data_path = pathlib.Path(os.getcwd()) / pathlib.Path('data\\' + data_source_menu_value)
+    data_path = pathlib.Path('data\\' + data_source_menu_value)
     df = pd.read_csv(data_path).dropna()
     df.columns = ['data']
 
