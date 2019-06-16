@@ -15,7 +15,7 @@ from bokeh.plotting import figure
 # TODO: add option to save plot.
 def load_data(data_source_menu_value, dist_type, loc):
     #data_path = pathlib.Path('data\\' + data_source_menu_value)
-    data_path = 'data\\' + data_source_menu_value
+    data_path = data_source_menu_value
     df = pd.read_csv(data_path).dropna()
     df.columns = ['data']
 
