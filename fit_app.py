@@ -197,7 +197,8 @@ dist_menu = Select(options=options, value='norm', title='Distribution:')
 dist_menu.on_change('value', on_dist_change)
 
 # Data source dropdown widget
-files = [x for x in os.listdir('data') if x.split('.')[-1] == 'csv']
+#files = [x for x in os.listdir('data') if x.split('.')[-1] == 'csv']
+files = ['data.csv', 'data2.csv']
 data_source_menu = Select(options=files, value='data.csv', title='Source from \'data\' directory:')
 data_source_menu.on_change('value', on_change_data_source)
 
