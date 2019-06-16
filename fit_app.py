@@ -22,8 +22,8 @@ def load_data(data_source_menu_value, dist_type, loc):
     df['data'] = df.sort_values(by='data').reset_index(drop=True)
 
     # Calculate distribution parameters for default (Normal) distribution.
-    dist_mle = fit.calc_fit_from_data(df['data'], dist_type, loc, 'mle')
-    dist_ls = fit.calc_fit_from_data(df['data'], dist_type, loc, 'ls')
+    dist_mle, _ = fit.calc_fit_from_data(df['data'], dist_type, loc, 'mle')
+    dist_ls, _ = fit.calc_fit_from_data(df['data'], dist_type, loc, 'ls')
 
     return df['data'], dist_mle, dist_ls
 
@@ -113,8 +113,8 @@ def on_change_data_source(attr, old, new):
 def on_dist_change(attr, old, new):
     dist_type = dist_menu.value
     loc = loc_val_input.value
-    dist_mle = fit.calc_fit_from_data(data_source.data['data'], dist_type, loc, 'mle')
-    dist_ls = fit.calc_fit_from_data(data_source.data['data'], dist_type, loc, 'ls')
+    dist_mle, _ = fit.calc_fit_from_data(data_source.data['data'], dist_type, loc, 'mle')
+    dist_ls, _ = fit.calc_fit_from_data(data_source.data['data'], dist_type, loc, 'ls')
 
     # Updated data_source.
     data_source.data = update_data_source(data_source.data['data'], dist_mle, dist_ls)

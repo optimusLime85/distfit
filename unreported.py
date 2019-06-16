@@ -12,7 +12,8 @@ def sample_w_replacement(obs, prob, n_sim=10000):
         Draw a set from obs with replacement
         prob is the probabilty that each entry could occur
     """
-    ind = np.linspace(1, len(obs), len(obs), dtype=int) - 1  # all indices of obs (index starts at 0)
+    ind = np.linspace(1, len(obs), len(obs), dtype=int) - 1  # All indices of obs (index starts at 0)
+    np.random.seed(0)   # Fix random seed.
     ind_rand = np.random.choice(ind, size=n_sim, replace=True, p=prob)  # Randomly from ind using probabilities in prob.
     sample = obs[ind_rand]  # retrieve the actual values from obs
 
@@ -38,6 +39,8 @@ def gen_unrep_sample(reported_size, rel_freq):
     """
         return a randomly generated sample of a representative population of undetected defects
     """
+    reported_size = np.array(reported_size)
+    rel_freq = np.array(rel_freq)
     unreported_sample = sample_w_replacement(reported_size, rel_freq)
 
     return unreported_sample
@@ -59,6 +62,36 @@ def unreported_params(reported_depth, det_threshold, pod_threshold, pofc, poi, u
     return [n_unreported, likelihood, rel_freq]
 
 
+def rep_unrep_plot(rep_sample, unrep_sample, rep_dist, unrep_dist, title='Title goes here', fig_save_path=None):
+    """
+        plots histograms of the reported and unreported data along with fitted distributions to each.
+    """
+    fig, ax = plt.subplots(1, 1)
+
+    heights_data, bins_data = np.histogram(rep_sample, normed=True)
+    heights_unrep, bins_unrep = np.histogram(unrep_sample, normed=True)
+    ax.hist([rep_sample, unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
+             label=['Reported', 'Unreported'], alpha=0.7)
+    ax.set_ylim([0, 1.1 * max(heights_data.max(), heights_unrep.max())])
+
+    x_line = np.linspace(min(rep_sample) * .95, max(rep_sample) * 1.05, 500)
+    ax.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3, 3])
+    ax.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3, 3])
+
+    handles, labels = ax.get_legend_handles_labels()
+    order = [2, 0, 3, 1]
+    fig.legend([handles[idx] for idx in order], [labels[idx] for idx in order], loc='upper right',
+               bbox_to_anchor=(0.9, 0.9))
+
+    fig.suptitle(title)
+    fig.tight_layout(rect=[0,0,1,0.95])
+
+    if fig_save_path:
+        fig.savefig(pl.Path(fig_save_path) / pl.Path(title + '.png'))
+
+    return fig
+
+
 if __name__ == '__main__':
     fit_dir = pathlib.Path(os.getcwd())
     data_dir = fit_dir / pathlib.Path('data')
@@ -77,22 +110,9 @@ if __name__ == '__main__':
     unrep_dist = fit.calc_fit_from_data(unrep_sample, 'lognorm')
     rep_dist = fit.calc_fit_from_data(df['data'], 'lognorm')
 
+    _ = rep_unrep_plot(df['data'], unrep_sample, rep_dist, unrep_dist)
+    _ = fit.make_fourplot(unrep_sample, unrep_dist, title='Unreported dist')
+    _ = fit.make_fourplot(df['data'], rep_dist, title='Reported dist')
+
     sns.set()
-    fig = plt.Figure()
-    ax = plt.gca()
-
-    heights_data, bins_data = np.histogram(df['data'], normed=True)
-    heights_unrep, bins_unrep = np.histogram(unrep_sample, normed=True)
-    plt.hist([df['data'], unrep_sample], color=['gray', 'green'], bins=bins_data, density=True,
-             label=['Reported','Unreported'], alpha=0.7)
-    ax.set_ylim([0, 1.1 * max(heights_data.max(), heights_unrep.max())])
-
-    x_line = np.linspace(df['data'].min() * .95, df['data'].max() * 1.05, 500)
-    plt.plot(x_line, rep_dist.pdf(x_line), color='gray', label='Reported Fit', dashes=[3,3])
-    plt.plot(x_line, unrep_dist.pdf(x_line), color='green', label='Unreported Fit', dashes=[3,3])
-
-    handles, labels = plt.gca().get_legend_handles_labels()
-    order = [2, 0, 3, 1]
-    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
-
     plt.show()

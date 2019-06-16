@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 import scipy.optimize as optimize
+import matplotlib.pyplot as plt
 
 
 def perc_emp_filliben(indices):
@@ -73,7 +74,9 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
     dist_mle = freeze_dist(dist_type, params_mle)
 
     if alg == 'mle':
-        return dist_mle
+        k = calc_k(dist_mle.dist, loc)
+        aic = calc_aic(dist_mle.pdf(data), k)
+        return dist_mle, aic
 
     # Calculate distribution parameters using ls, and calculate corresponding percentiles and quantiles
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
@@ -93,7 +96,9 @@ def calc_fit_from_data(data, dist_type, loc='', alg='ls'):
 
     dist_ls = freeze_dist(dist_type, params_ls)
 
-    return dist_ls
+    k = calc_k(dist_ls.dist, loc)
+    aic = calc_aic(dist_ls.pdf(data), k)
+    return dist_ls, aic
 
 
 def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
@@ -101,8 +106,8 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
     perc_emp = perc_emp_filliben(np.linspace(1, len(data), len(data)))
     x_fit = dist.ppf(np.linspace(1e-3, (1 - 1e-3), 500))
 
-    fig, ((hist, cdf), (pp, qq)) = plt.subplots(2,2)
-    fig.suptitle(title)
+    fourplot, ((hist, cdf), (pp, qq)) = plt.subplots(2, 2)
+    fourplot.suptitle(title)
 
     hist.plot(x_fit, dist.pdf(x_fit), color='green', linewidth=2.)
     hist_heights, bins = np.histogram(data)
@@ -119,7 +124,7 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
     pp.scatter(dist.cdf(data), perc_emp, color='gray', s=1., alpha=0.7)
     pp.plot((0, 1), (0,1), color='black', linewidth=1.)
     pp.set_xlabel('Theoretical Probability')
-    pp.set_ylabel('Theoretical Probability')
+    pp.set_ylabel('Empirical Probability')
 
     qq.scatter(dist.ppf(perc_emp), data, color='gray', s=1., alpha=0.7)
     qq.plot((min(data),max(data)), (min(data),max(data)), color='black', linewidth=1.)
@@ -130,3 +135,5 @@ def make_fourplot(data, dist, title='Title goes here', fig_save_path=None):
 
     if fig_save_path:
         plt.savefig(fig_save_path + '\\' + title + '.png')
+
+    return fourplot
