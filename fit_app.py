@@ -194,13 +194,13 @@ qq.line(x='x', y='y', color='gray', source=qq_line_source)
 
 # Distribution dropdown widget
 options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
-dist_menu = Select(options=options, value='norm', title='Distribution:')
+dist_menu = Select(options=options, value='norm', title='Select distribution:')
 dist_menu.on_change('value', on_dist_change)
 
 # Data source dropdown widget
 #files = [x for x in os.listdir('data') if x.split('.')[-1] == 'csv']
 files = ['data.csv', 'data2.csv']
-data_source_menu = Select(options=files, value='data.csv', title='Source from \'data\' directory:')
+data_source_menu = Select(options=files, value='data.csv', title='Select data source:')
 data_source_menu.on_change('value', on_change_data_source)
 
 # Table widget
@@ -218,7 +218,7 @@ metrics_columns = [
 metrics_table = DataTable(source=metrics_source, columns=metrics_columns, height=100)
 
 # Text input widget
-loc_val_input = TextInput(title='Specify loc value:', placeholder='none', value='')
+loc_val_input = TextInput(title='Specify distribution location value:', placeholder='none', value='')
 loc_val_input.on_change('value', on_dist_change)
 
 # Format app layout
