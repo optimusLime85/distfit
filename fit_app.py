@@ -193,7 +193,8 @@ qq_line_source = ColumnDataSource(dict(x=(0, max(data)), y=(0, max(data))))
 qq.line(x='x', y='y', color='gray', source=qq_line_source)
 
 # Distribution dropdown widget
-options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
+#options = [x for x in dir(stats) if isinstance(getattr(stats, x), stats.rv_continuous)]
+options = ['gamma', 'lognorm', 'norm', 'weibull_min']
 dist_menu = Select(options=options, value='norm', title='Select distribution:')
 dist_menu.on_change('value', on_dist_change)
 
